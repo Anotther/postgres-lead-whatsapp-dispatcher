@@ -1,0 +1,43 @@
+# Configuração das instâncias/caixas usadas para envio.
+#
+# Copie este arquivo para:
+# config/instances.yml
+#
+# O arquivo config/instances.yml não deve ser versionado no GitHub,
+# pois pode conter nomes reais de instâncias e regras operacionais.
+
+instances:
+  - name: caixa-01
+    enabled: true
+
+    # Delay individual desta instância após cada envio.
+    # Enquanto esta instância espera, outras instâncias podem continuar enviando.
+    min_delay_seconds: 45
+    max_delay_seconds: 120
+
+    # Limite máximo de envios desta instância por execução.
+    # Use um valor conservador no início.
+    run_limit: 100
+
+    # Limite diário opcional.
+    # O controle real depende de persistência/histórico de envios.
+    daily_limit: 300
+
+    # Permite usar esta instância para enviar relatório final.
+    report_enabled: true
+
+  - name: caixa-02
+    enabled: true
+    min_delay_seconds: 60
+    max_delay_seconds: 150
+    run_limit: 100
+    daily_limit: 300
+    report_enabled: false
+
+  - name: caixa-03
+    enabled: false
+    min_delay_seconds: 90
+    max_delay_seconds: 180
+    run_limit: 80
+    daily_limit: 200
+    report_enabled: false

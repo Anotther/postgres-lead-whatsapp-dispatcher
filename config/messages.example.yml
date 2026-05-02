@@ -1,0 +1,53 @@
+# Templates de mensagens usadas no envio.
+#
+# Copie este arquivo para:
+# config/messages.yml
+#
+# Placeholders disponíveis inicialmente:
+# - {first_name}
+# - {full_name}
+# - {course_interest}
+#
+# Evite mensagens agressivas, enganosas ou com aparência de spam.
+# Use apenas para leads com base legal/consentimento adequado.
+
+messages:
+  - id: curso_interesse_01
+    enabled: true
+    weight: 1
+    text: |
+      Olá, {first_name}! Tudo bem?
+
+      Vi que você demonstrou interesse em cursos de ensino superior pela nossa vitrine.
+
+      Posso te ajudar a entender as opções disponíveis e o melhor caminho para sua inscrição?
+
+  - id: curso_interesse_02
+    enabled: true
+    weight: 1
+    text: |
+      Oi, {first_name}! Aqui é da equipe de atendimento.
+
+      Recebemos seu interesse em cursos superiores e queria confirmar se você ainda está buscando uma opção para estudar.
+
+      Posso te passar as informações por aqui?
+
+  - id: curso_interesse_03
+    enabled: true
+    weight: 1
+    text: |
+      Olá, {first_name}!
+
+      Você se cadastrou demonstrando interesse em ensino superior. Estou passando para verificar se ainda faz sentido conversar sobre curso, valores e formas de ingresso.
+
+      Quer que eu te ajude?
+
+  - id: curso_interesse_com_curso
+    enabled: true
+    weight: 1
+    text: |
+      Olá, {first_name}! Tudo bem?
+
+      Vi seu interesse em {course_interest} e estou passando para te ajudar com as informações de ingresso, valores e próximos passos.
+
+      Posso te enviar os detalhes por aqui?
