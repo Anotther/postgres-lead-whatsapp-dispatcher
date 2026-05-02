@@ -1,4 +1,5 @@
 import psycopg
+
 from .settings import settings
 
 
@@ -9,4 +10,5 @@ def get_connection():
         dbname=settings.postgres_db,
         user=settings.postgres_user,
         password=settings.postgres_password,
+        sslmode=settings.postgres_sslmode,
     )

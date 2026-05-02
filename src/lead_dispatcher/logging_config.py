@@ -5,6 +5,23 @@ from logging.handlers import TimedRotatingFileHandler
 from pathlib import Path
 
 from .settings import settings
+from .utils import mask_phone_numbers
+
+
+class PhoneMaskingFilter(logging.Filter):
+    def filter(self, record: logging.LogRecord) -> bool:
+        record.msg = mask_phone_numbers(str(record.msg))
+
+        if record.args:
+            if isinstance(record.args, dict):
+                record.args = {
+                    key: mask_phone_numbers(str(value))
+                    for key, value in record.args.items()
+                }
+            else:
+                record.args = tuple(mask_phone_numbers(str(value)) for value in record.args)
+
+        return True
 
 
 def setup_logging() -> None:
@@ -34,6 +51,11 @@ def setup_logging() -> None:
     console_handler = logging.StreamHandler()
     console_handler.setFormatter(formatter)
     console_handler.setLevel(log_level)
+
+    if getattr(settings, "log_mask_phone", True):
+        phone_masking_filter = PhoneMaskingFilter()
+        file_handler.addFilter(phone_masking_filter)
+        console_handler.addFilter(phone_masking_filter)
 
     root_logger = logging.getLogger()
     root_logger.setLevel(log_level)
