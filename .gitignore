@@ -30,6 +30,7 @@ reports/*
 # Local data
 data/*
 !data/.gitkeep
+!data/leads_mock.csv
 
 # Local runtime config
 config/instances.yml

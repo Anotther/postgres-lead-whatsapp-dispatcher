@@ -3,51 +3,76 @@
 # Copie este arquivo para:
 # config/messages.yml
 #
-# Placeholders disponíveis inicialmente:
+# Contexto:
+# Leads interessados em cursos de ensino superior EAD.
+#
+# Placeholders disponíveis:
+# - {greeting}
 # - {first_name}
 # - {full_name}
 # - {course_interest}
+# - {duration_interest}
 #
-# Evite mensagens agressivas, enganosas ou com aparência de spam.
-# Use apenas para leads com base legal/consentimento adequado.
+# Observação:
+# A saudação deve ser escolhida aleatoriamente pelo message_renderer.py.
+# Exemplo: Oi, Olá, Oi!, Olá!, Bom dia, Boa tarde.
+
+greeting_variations:
+  - Oi
+  - Olá
+  - Oi!
+  - Olá!
+  - Bom dia
+  - Boa tarde
+  - Boa noite
 
 messages:
-  - id: curso_interesse_01
+  - id: ead_continuidade_01
     enabled: true
     weight: 1
     text: |
-      Olá, {first_name}! Tudo bem?
+      {greeting}, {first_name}. Tudo bem?
 
-      Vi que você demonstrou interesse em cursos de ensino superior pela nossa vitrine.
+      Vi que você demonstrou interesse no curso de {course_interest}, com duração aproximada de {duration_interest}.
 
-      Posso te ajudar a entender as opções disponíveis e o melhor caminho para sua inscrição?
+      Estou entrando em contato para saber se você precisa de ajuda para dar continuidade na sua inscrição.
 
-  - id: curso_interesse_02
+  - id: ead_continuidade_02
     enabled: true
     weight: 1
     text: |
-      Oi, {first_name}! Aqui é da equipe de atendimento.
+      {greeting}, {first_name}. Aqui é da equipe de atendimento.
 
-      Recebemos seu interesse em cursos superiores e queria confirmar se você ainda está buscando uma opção para estudar.
+      Recebemos seu interesse no curso de {course_interest}, com duração aproximada de {duration_interest}.
 
-      Posso te passar as informações por aqui?
+      Posso te ajudar a continuar o processo e entender os próximos passos?
 
-  - id: curso_interesse_03
+  - id: ead_continuidade_03
     enabled: true
     weight: 1
     text: |
-      Olá, {first_name}!
+      {greeting}, {first_name}. Tudo certo?
 
-      Você se cadastrou demonstrando interesse em ensino superior. Estou passando para verificar se ainda faz sentido conversar sobre curso, valores e formas de ingresso.
+      Você demonstrou interesse em {course_interest}, curso com duração aproximada de {duration_interest}.
 
-      Quer que eu te ajude?
+      Gostaria de saber se ainda faz sentido te ajudar a dar continuidade na sua inscrição.
 
-  - id: curso_interesse_com_curso
+  - id: ead_continuidade_04
     enabled: true
     weight: 1
     text: |
-      Olá, {first_name}! Tudo bem?
+      {greeting}, {first_name}.
 
-      Vi seu interesse em {course_interest} e estou passando para te ajudar com as informações de ingresso, valores e próximos passos.
+      Vi seu cadastro de interesse para {course_interest}, com duração aproximada de {duration_interest}.
 
-      Posso te enviar os detalhes por aqui?
+      Estou passando para verificar se você precisa de apoio para seguir com a inscrição ou tirar alguma dúvida.
+
+  - id: ead_continuidade_05
+    enabled: true
+    weight: 1
+    text: |
+      {greeting}, {first_name}. Como vai?
+
+      Seu interesse no curso de {course_interest}, com duração aproximada de {duration_interest}, ficou registrado em nossa vitrine.
+
+      Posso te orientar para dar continuidade no atendimento?
