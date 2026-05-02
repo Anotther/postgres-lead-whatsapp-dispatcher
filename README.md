@@ -194,7 +194,7 @@ Exemplo:
 ```env
 POSTGRES_HOST=localhost
 POSTGRES_PORT=5432
-POSTGRES_DB=leads_db
+POSTGRES_DB=postgres_hdd
 POSTGRES_USER=postgres
 POSTGRES_PASSWORD=change_me
 POSTGRES_SSLMODE=prefer
@@ -221,7 +221,43 @@ LOG_MASK_PHONE=true
 REPORT_DIR=reports
 REPORT_SEND_WHATSAPP=false
 REPORT_RECIPIENT_NUMBER=5599999999999
-REPORT_RECIPIENT_INSTANCE=caixa-01
+REPORT_RECIPIENT_INSTANCE=sua-instancia-principal
+```
+
+## Setup local com Postgres HDD
+
+O repositório mantém apenas exemplos versionados. Os arquivos reais abaixo ficam no `.gitignore`:
+
+```txt
+.env
+config/instances.yml
+config/messages.yml
+config/lead_query.sql
+config/setup_postgres_hdd.sql
+data/leads_mock.csv
+logs/*
+reports/*
+```
+
+Nesta branch, foi criado um `.env` local apontando para `POSTGRES_DB=postgres_hdd`, com `DRY_RUN=true` e `LOG_MASK_PHONE=true`. Preencha `POSTGRES_USER`, `POSTGRES_PASSWORD`, `EVOLUTION_API_KEY` e o nome real da instância antes de usar.
+
+Para criar e popular o banco local com o mock:
+
+```bash
+createdb postgres_hdd
+psql -d postgres_hdd -f config/setup_postgres_hdd.sql
+```
+
+O mock local usa `41995306821` em todos os contatos para evitar disparo acidental para números reais durante testes.
+
+## Exemplo de mensagem enviada no WhatsApp
+
+```txt
+Olá, Ana. Tudo bem?
+
+Vi que você demonstrou interesse no curso de Administração, com duração aproximada de 4 anos.
+
+Estou entrando em contato para saber se você precisa de ajuda para dar continuidade na sua inscrição.
 ```
 
 ## Exemplo de log de execução
@@ -232,28 +268,28 @@ Este é um exemplo de como o sistema deve se comportar quando estiver funcionand
 2026-05-02 10:00:00 | INFO | lead_dispatcher.main | Starting dispatcher app=postgres-lead-whatsapp-dispatcher dry_run=true
 2026-05-02 10:00:00 | INFO | lead_dispatcher.config | Loaded instances config path=config/instances.yml enabled_instances=3
 2026-05-02 10:00:00 | INFO | lead_dispatcher.config | Loaded messages config path=config/messages.yml enabled_templates=5 greeting_variations=7
-2026-05-02 10:00:01 | INFO | lead_dispatcher.database | Connected to PostgreSQL host=localhost port=5432 db=leads_db sslmode=prefer
+2026-05-02 10:00:01 | INFO | lead_dispatcher.database | Connected to PostgreSQL host=localhost port=5432 db=postgres_hdd sslmode=prefer
 2026-05-02 10:00:01 | INFO | lead_dispatcher.repository | Fetching leads query_path=config/lead_query.sql lead_limit=100
 2026-05-02 10:00:02 | INFO | lead_dispatcher.repository | Leads fetched total=15
-2026-05-02 10:00:02 | INFO | lead_dispatcher.dispatcher | Lead eligible lead_id=1 phone=5599****01 course=Administração duration=4 anos
+2026-05-02 10:00:02 | INFO | lead_dispatcher.dispatcher | Lead eligible lead_id=1 phone=4199*****21 course=Administração duration=4 anos
 2026-05-02 10:00:02 | INFO | lead_dispatcher.dispatcher | Selected instance instance=caixa-01 sent_count=0 next_available_at=available
 2026-05-02 10:00:02 | INFO | lead_dispatcher.message | Rendered message lead_id=1 template=ead_continuidade_01 greeting=Olá first_name=Ana
-2026-05-02 10:00:02 | INFO | lead_dispatcher.dispatcher | Dry-run enabled; message not sent lead_id=1 instance=caixa-01 phone=5599****01
+2026-05-02 10:00:02 | INFO | lead_dispatcher.dispatcher | Dry-run enabled; message not sent lead_id=1 instance=caixa-01 phone=4199*****21
 2026-05-02 10:00:02 | INFO | lead_dispatcher.instance_pool | Instance delayed instance=caixa-01 delay_seconds=87 next_available_in=87
-2026-05-02 10:00:03 | INFO | lead_dispatcher.dispatcher | Lead eligible lead_id=2 phone=5599****02 course=Pedagogia duration=4 anos
+2026-05-02 10:00:03 | INFO | lead_dispatcher.dispatcher | Lead eligible lead_id=2 phone=4199*****21 course=Pedagogia duration=4 anos
 2026-05-02 10:00:03 | INFO | lead_dispatcher.dispatcher | Selected instance instance=caixa-02 sent_count=0 next_available_at=available
 2026-05-02 10:00:03 | INFO | lead_dispatcher.message | Rendered message lead_id=2 template=ead_continuidade_03 greeting=Oi first_name=Bruno
-2026-05-02 10:00:03 | INFO | lead_dispatcher.dispatcher | Dry-run enabled; message not sent lead_id=2 instance=caixa-02 phone=5599****02
+2026-05-02 10:00:03 | INFO | lead_dispatcher.dispatcher | Dry-run enabled; message not sent lead_id=2 instance=caixa-02 phone=4199*****21
 2026-05-02 10:00:03 | INFO | lead_dispatcher.instance_pool | Instance delayed instance=caixa-02 delay_seconds=132 next_available_in=132
-2026-05-02 10:00:04 | INFO | lead_dispatcher.dispatcher | Lead eligible lead_id=3 phone=5599****03 course=Ciências Contábeis duration=4 anos
+2026-05-02 10:00:04 | INFO | lead_dispatcher.dispatcher | Lead eligible lead_id=3 phone=4199*****21 course=Ciências Contábeis duration=4 anos
 2026-05-02 10:00:04 | INFO | lead_dispatcher.dispatcher | Selected instance instance=caixa-03 sent_count=0 next_available_at=available
 2026-05-02 10:00:04 | INFO | lead_dispatcher.message | Rendered message lead_id=3 template=ead_continuidade_02 greeting=Bom dia first_name=Camila
-2026-05-02 10:00:04 | INFO | lead_dispatcher.dispatcher | Dry-run enabled; message not sent lead_id=3 instance=caixa-03 phone=5599****03
+2026-05-02 10:00:04 | INFO | lead_dispatcher.dispatcher | Dry-run enabled; message not sent lead_id=3 instance=caixa-03 phone=4199*****21
 2026-05-02 10:00:04 | INFO | lead_dispatcher.instance_pool | Instance delayed instance=caixa-03 delay_seconds=61 next_available_in=61
 2026-05-02 10:00:05 | INFO | lead_dispatcher.dispatcher | No available instance; waiting next_available_instance=caixa-03 wait_seconds=60
 2026-05-02 10:01:05 | INFO | lead_dispatcher.dispatcher | Selected instance instance=caixa-03 sent_count=1 next_available_at=available
 2026-05-02 10:01:05 | INFO | lead_dispatcher.message | Rendered message lead_id=4 template=ead_continuidade_05 greeting=Olá! first_name=Diego
-2026-05-02 10:01:05 | INFO | lead_dispatcher.dispatcher | Dry-run enabled; message not sent lead_id=4 instance=caixa-03 phone=5599****04
+2026-05-02 10:01:05 | INFO | lead_dispatcher.dispatcher | Dry-run enabled; message not sent lead_id=4 instance=caixa-03 phone=4199*****21
 2026-05-02 10:01:05 | INFO | lead_dispatcher.instance_pool | Instance delayed instance=caixa-03 delay_seconds=94 next_available_in=94
 2026-05-02 10:01:06 | INFO | lead_dispatcher.dispatcher | Lead skipped lead_id=8 reason=sale_started
 2026-05-02 10:01:07 | INFO | lead_dispatcher.dispatcher | Lead skipped lead_id=11 reason=missing_whatsapp_opt_in
@@ -271,7 +307,7 @@ postgres-lead-whatsapp-dispatcher/
 │  ├─ messages.example.yml
 │  └─ lead_query.example.sql
 ├─ data/
-│  └─ leads_mock.csv
+│  └─ .gitkeep
 ├─ logs/
 │  └─ .gitkeep
 ├─ reports/
@@ -321,6 +357,8 @@ cp config/instances.example.yml config/instances.yml
 cp config/messages.example.yml config/messages.yml
 cp config/lead_query.example.sql config/lead_query.sql
 ```
+
+Nesta branch os arquivos locais já foram criados para facilitar a configuração, mas continuam ignorados pelo Git.
 
 Rode em modo simulação:
 

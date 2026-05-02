@@ -71,8 +71,12 @@ def render_markdown_report(records: list[DispatchRecord]) -> str:
     )
 
     for record in records:
+        row_template = (
+            "| {lead_id} | {full_name} | {phone} | {instance} | "
+            "{message_id} | {status} | {reason} | {error} |"
+        )
         lines.append(
-            "| {lead_id} | {full_name} | {phone} | {instance} | {message_id} | {status} | {reason} | {error} |".format(
+            row_template.format(
                 lead_id=record.lead_id or "",
                 full_name=record.full_name or "",
                 phone=mask_phone(record.phone or ""),
@@ -100,7 +104,11 @@ def save_reports(records: list[DispatchRecord]) -> dict[str, Path]:
         "md": report_dir / f"{base_name}.md",
     }
 
-    rows = [asdict(record) for record in records]
+    rows = []
+    for record in records:
+        row = asdict(record)
+        row["phone"] = mask_phone(row.get("phone") or "")
+        rows.append(row)
 
     with paths["csv"].open("w", newline="", encoding="utf-8") as file:
         writer = csv.DictWriter(
@@ -118,7 +126,6 @@ def save_reports(records: list[DispatchRecord]) -> dict[str, Path]:
         )
         writer.writeheader()
         for row in rows:
-            row["phone"] = mask_phone(row.get("phone") or "")
             writer.writerow(row)
 
     with paths["json"].open("w", encoding="utf-8") as file:
