@@ -101,6 +101,7 @@ def _record_remaining_not_sent(
     *,
     start_index: int,
     reason: str = "all_instances_limit_reached",
+    status: str = "not_sent_limit_reached",
 ) -> None:
     for lead in leads[start_index:]:
         phone = str(lead.get("phone") or "")
@@ -114,7 +115,7 @@ def _record_remaining_not_sent(
                 phone=phone_result.normalized or phone,
                 instance=None,
                 message_id=None,
-                status="not_sent_limit_reached",
+                status=status,
                 reason=reason,
                 original_phone=phone,
                 normalized_phone=phone_result.normalized,
@@ -278,8 +279,19 @@ def run_dispatch():
                     _record_remaining_not_sent(records, leads, start_index=index)
                     return records
 
-                logger.info("No available instance; waiting wait_seconds=1")
-                time.sleep(1)
+                next_instance = pool.next_available_instance(ignore_limits=limit_override)
+                if next_instance:
+                    wait_seconds = max(1, int(next_instance.next_available_at - time.time()))
+                    logger.info(
+                        "No available instance; waiting next_available_instance=%s "
+                        "wait_seconds=%s",
+                        next_instance.name,
+                        wait_seconds,
+                    )
+                    time.sleep(min(wait_seconds, 5))
+                else:
+                    logger.info("No available instance; waiting wait_seconds=1")
+                    time.sleep(1)
 
             try:
                 message_id, message = render_message(
@@ -386,6 +398,16 @@ def run_dispatch():
                     if settings.stop_on_critical_error:
                         return records
 
+        return records
+    except KeyboardInterrupt:
+        logger.warning("Dispatcher interrupted by operator; generating partial reports")
+        _record_remaining_not_sent(
+            records,
+            leads if "leads" in locals() else [],
+            start_index=index if "index" in locals() else len(records),
+            reason="operator_interrupted",
+            status="interrupted",
+        )
         return records
     finally:
         paths = save_reports(records)

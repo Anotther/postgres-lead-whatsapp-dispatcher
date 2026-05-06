@@ -119,3 +119,39 @@ def test_run_dispatch_marks_remaining_records_when_limits_are_reached(tmp_path, 
     assert [record.status for record in records] == ["sent", "not_sent_limit_reached"]
     assert records[1].reason == "all_instances_limit_reached"
     assert list(tmp_path.glob("failed_contacts_*.csv"))
+
+
+def test_run_dispatch_handles_keyboard_interrupt_while_waiting(tmp_path, monkeypatch):
+    monkeypatch.setattr(dispatcher.settings, "report_dir", str(tmp_path))
+    monkeypatch.setattr(dispatcher.settings, "report_formats", "csv")
+    monkeypatch.setattr(dispatcher.settings, "dry_run", True)
+    monkeypatch.setattr(dispatcher.settings, "report_send_whatsapp", False)
+    monkeypatch.setattr(dispatcher.settings, "default_country_code", "55")
+    monkeypatch.setattr(dispatcher, "setup_logging", lambda: None)
+    monkeypatch.setattr(
+        dispatcher,
+        "fetch_leads",
+        lambda limit: [
+            {"lead_id": 1, "full_name": "Ana", "phone": "41995306821"},
+            {"lead_id": 2, "full_name": "Bruno", "phone": "41995306822"},
+        ],
+    )
+    monkeypatch.setattr(
+        dispatcher,
+        "load_instances_config",
+        lambda: [Instance("caixa-01", 30, 30)],
+    )
+    monkeypatch.setattr(dispatcher, "DispatchState", FakeDispatchState)
+    monkeypatch.setattr(dispatcher, "EvolutionClient", FakeEvolutionClient)
+    monkeypatch.setattr(dispatcher, "render_message", lambda lead: ("template-1", "Oi"))
+
+    def interrupt(_seconds):
+        raise KeyboardInterrupt
+
+    monkeypatch.setattr(dispatcher.time, "sleep", interrupt)
+
+    records = dispatcher.run_dispatch()
+
+    assert [record.status for record in records] == ["sent", "interrupted"]
+    assert records[1].reason == "operator_interrupted"
+    assert list(tmp_path.glob("failed_contacts_*.csv"))

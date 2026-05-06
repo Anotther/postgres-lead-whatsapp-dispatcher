@@ -119,6 +119,7 @@ REPORT_FIELDS = [
 
 FAILED_CONTACT_STATUSES = {
     "failed",
+    "interrupted",
     "skipped_invalid_phone",
     "not_sent_limit_reached",
 }

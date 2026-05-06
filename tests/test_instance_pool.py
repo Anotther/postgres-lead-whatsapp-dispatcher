@@ -72,3 +72,17 @@ def test_all_enabled_instances_at_limit_returns_true_when_limits_reached():
     )
 
     assert pool.all_enabled_instances_at_limit() is True
+
+
+def test_next_available_instance_returns_soonest_non_limited_instance(monkeypatch):
+    monkeypatch.setattr(instance_pool.time, "time", lambda: 100.0)
+    soonest = Instance("caixa-02", 30, 90, next_available_at=120.0)
+    pool = InstancePool(
+        [
+            Instance("caixa-01", 30, 90, next_available_at=150.0),
+            soonest,
+            Instance("caixa-03", 30, 90, run_limit=1, sent_count=1),
+        ]
+    )
+
+    assert pool.next_available_instance() is soonest

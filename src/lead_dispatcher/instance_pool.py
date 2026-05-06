@@ -67,6 +67,27 @@ class InstancePool:
     def has_enabled_instances(self) -> bool:
         return any(instance.enabled for instance in self.instances)
 
+    def next_available_instance(self, *, ignore_limits: bool = False) -> Instance | None:
+        limited_instances = [
+            instance for instance in self.instances
+            if instance.enabled
+            and (
+                ignore_limits
+                or (
+                    (instance.run_limit is None or instance.sent_count < instance.run_limit)
+                    and (
+                        instance.daily_limit is None
+                        or instance.daily_sent_count < instance.daily_limit
+                    )
+                )
+            )
+        ]
+
+        if not limited_instances:
+            return None
+
+        return sorted(limited_instances, key=lambda instance: instance.next_available_at)[0]
+
     def all_enabled_instances_at_limit(self) -> bool:
         enabled_instances = [instance for instance in self.instances if instance.enabled]
 
