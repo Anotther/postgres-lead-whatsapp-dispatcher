@@ -54,7 +54,8 @@ class Settings(BaseSettings):
 
     # Reports
     report_dir: str = "reports"
-    report_formats: str = "csv,json,md"
+    report_formats: str = "md"
+    report_keep_history: bool = False
     report_send_whatsapp: bool = False
     report_recipient_number: str | None = None
     report_recipient_instance: str | None = None

@@ -95,7 +95,8 @@ def test_run_dispatch_generates_reports_and_sends_summary(tmp_path, monkeypatch)
     assert FakeEvolutionClient.instances[0].sent[0]["number"] == "5541995306821"
     assert FakeEvolutionClient.instances[0].sent[1]["number"] == "5541995306821"
     assert list(tmp_path.glob("send_report_*.csv"))
-    assert list(tmp_path.glob("send_report_*.json"))
+    assert not list(tmp_path.glob("send_report_*.json"))
+    assert list(tmp_path.glob("sent_contacts_*.csv"))
     assert list(tmp_path.glob("failed_contacts_*.csv"))
 
 

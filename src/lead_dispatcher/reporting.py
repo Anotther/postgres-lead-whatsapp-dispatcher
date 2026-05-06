@@ -100,13 +100,18 @@ FAILED_CONTACT_STATUSES = {
 
 
 def parse_report_formats(report_formats: str | None = None) -> set[str]:
-    raw_value = report_formats or getattr(settings, "report_formats", "csv,json,md")
-    formats = {
+    raw_value = report_formats or getattr(settings, "report_formats", "md")
+    formats = [
         item.strip().lower()
         for item in raw_value.split(",")
         if item.strip()
-    }
-    return formats & {"csv", "json", "md"}
+    ]
+
+    for report_format in formats:
+        if report_format in {"csv", "json", "md"}:
+            return {report_format}
+
+    return {"md"}
 
 
 def _summary_rows(records: list[DispatchRecord]) -> list[dict[str, Any]]:
@@ -136,16 +141,31 @@ def _summary_rows(records: list[DispatchRecord]) -> list[dict[str, Any]]:
 def _record_to_failure_row(record: DispatchRecord) -> dict[str, Any]:
     return {
         "lead_id": record.lead_id,
-        "full_name": record.full_name,
-        "original_phone": record.original_phone or record.phone,
-        "normalized_phone": record.normalized_phone,
+        "phone": record.normalized_phone or record.phone or record.original_phone,
         "instance": record.instance,
-        "message_id": record.message_id,
         "status": record.status,
         "reason": record.reason,
         "error": record.error,
         "limit_override": record.limit_override,
     }
+
+
+def _record_to_sent_row(record: DispatchRecord) -> dict[str, Any]:
+    return {
+        "lead_id": record.lead_id,
+        "phone": record.normalized_phone or record.phone,
+        "instance": record.instance,
+    }
+
+
+def cleanup_old_reports(report_dir: Path) -> None:
+    if getattr(settings, "report_keep_history", False):
+        return
+
+    for pattern in ("send_report_*", "sent_contacts_*", "failed_contacts_*"):
+        for path in report_dir.glob(pattern):
+            if path.is_file():
+                path.unlink()
 
 
 def save_reports(
@@ -155,6 +175,7 @@ def save_reports(
 ) -> dict[str, Path]:
     report_dir = Path(getattr(settings, "report_dir", "reports"))
     report_dir.mkdir(parents=True, exist_ok=True)
+    cleanup_old_reports(report_dir)
 
     timestamp = datetime.now().strftime("%Y-%m-%d_%H%M%S")
     base_name = f"send_report_{timestamp}"
@@ -194,7 +215,36 @@ def save_reports(
     if failure_path:
         paths["failed_contacts_csv"] = failure_path
 
+    sent_path = save_sent_contacts_report(records, timestamp=timestamp)
+    if sent_path:
+        paths["sent_contacts_csv"] = sent_path
+
     return paths
+
+
+def save_sent_contacts_report(
+    records: list[DispatchRecord],
+    *,
+    timestamp: str | None = None,
+) -> Path | None:
+    sent_records = [record for record in records if record.status == "sent"]
+
+    if not sent_records:
+        return None
+
+    report_dir = Path(getattr(settings, "report_dir", "reports"))
+    report_dir.mkdir(parents=True, exist_ok=True)
+
+    timestamp = timestamp or datetime.now().strftime("%Y-%m-%d_%H%M%S")
+    path = report_dir / f"sent_contacts_{timestamp}.csv"
+
+    with path.open("w", newline="", encoding="utf-8") as file:
+        writer = csv.DictWriter(file, fieldnames=["lead_id", "phone", "instance"])
+        writer.writeheader()
+        for record in sent_records:
+            writer.writerow(_record_to_sent_row(record))
+
+    return path
 
 
 def save_failed_contacts_report(
@@ -217,11 +267,8 @@ def save_failed_contacts_report(
     path = report_dir / f"failed_contacts_{timestamp}.csv"
     fieldnames = [
         "lead_id",
-        "full_name",
-        "original_phone",
-        "normalized_phone",
+        "phone",
         "instance",
-        "message_id",
         "status",
         "reason",
         "error",

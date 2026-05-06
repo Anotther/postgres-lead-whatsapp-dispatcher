@@ -39,8 +39,8 @@ Antes de enviar uma mensagem, o sistema:
 | Paralelismo operacional | Se uma instância estiver em delay, outra disponível pode continuar enviando. |
 | Dry-run | Permite simular envios sem chamar a API real. |
 | Logs rotativos | Logs salvos em `logs/` com retenção automática. |
-| Relatórios | Gera relatórios agregados em CSV, JSON e Markdown conforme `REPORT_FORMATS`, sem telefones ou linhas por lead. |
-| Base de falhas | Gera CSV separado com contatos inválidos, falhas e não enviados por limite. |
+| Relatórios | Gera um relatório agregado no formato definido por `REPORT_FORMATS`, sem telefones ou linhas por lead. |
+| Bases operacionais | Gera CSV separado de enviados e CSV separado de falhas/não enviados. |
 | Envio de relatório | Envia resumo final para um destinatário via WhatsApp quando habilitado. |
 | Projeto no GitHub | Este projeto foi usado para documentar e versionar o dispatcher no GitHub. Repositório: [Anotther/postgres-lead-whatsapp-dispatcher](https://github.com/Anotther/postgres-lead-whatsapp-dispatcher). |
 
@@ -227,7 +227,8 @@ LOG_RETENTION_DAYS=7
 LOG_MASK_PHONE=true
 
 REPORT_DIR=reports
-REPORT_FORMATS=csv,json,md
+REPORT_FORMATS=md
+REPORT_KEEP_HISTORY=false
 REPORT_SEND_WHATSAPP=false
 REPORT_RECIPIENT_NUMBER=5599999999999
 REPORT_RECIPIENT_INSTANCE=sua-instancia-principal
@@ -238,6 +239,8 @@ REPORT_RECIPIENT_INSTANCE=sua-instancia-principal
 `LEAD_LIMIT` limita a quantidade de mensagens enviadas na execução. A query em `LEAD_QUERY_PATH` deve buscar todos os leads elegíveis sem `LIMIT`; o dispatcher decide quantos enviar.
 
 O controle diário fica em `DISPATCH_STATE_PATH` e armazena somente contadores por instância, sem dados pessoais.
+
+`REPORT_FORMATS` aceita `md`, `csv` ou `json`, mas o dispatcher gera apenas um relatório principal por execução. Com `REPORT_KEEP_HISTORY=false`, relatórios antigos em `reports/` são apagados antes de salvar a nova execução. Além do relatório principal, o sistema gera `sent_contacts_*.csv` com `lead_id`, telefone e instância dos envios, e `failed_contacts_*.csv` com falhas e não enviados.
 
 ## Setup local com Postgres HDD
 
@@ -305,7 +308,7 @@ Este é um exemplo de como o sistema deve se comportar quando estiver funcionand
 2026-05-02 10:00:05 | INFO | lead_dispatcher.dispatcher | Instance in delay instance=caixa-03 wait_seconds=60 available_at=2026-05-02 10:01:05
 2026-05-02 10:01:06 | INFO | lead_dispatcher.dispatcher | Lead skipped lead_id=8 phone=5541*******21 reason=sale_started
 2026-05-02 10:01:07 | INFO | lead_dispatcher.dispatcher | Lead skipped lead_id=11 phone=5541*******21 reason=missing_whatsapp_opt_in
-2026-05-02 10:03:21 | INFO | lead_dispatcher.dispatcher | Reports generated csv=reports/send_report_2026-05-02_100321.csv json=reports/send_report_2026-05-02_100321.json md=reports/send_report_2026-05-02_100321.md
+2026-05-02 10:03:21 | INFO | lead_dispatcher.dispatcher | Reports generated md=reports/send_report_2026-05-02_100321.md sent_contacts_csv=reports/sent_contacts_2026-05-02_100321.csv
 2026-05-02 10:03:21 | INFO | lead_dispatcher.main | Dispatcher finished
 ```
 
