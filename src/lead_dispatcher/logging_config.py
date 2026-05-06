@@ -11,8 +11,9 @@ from .utils import mask_phone_numbers
 class PhoneMaskingFilter(logging.Filter):
     @staticmethod
     def _mask_value(value):
-        if isinstance(value, str):
-            return mask_phone_numbers(value)
+        if isinstance(value, (str, int)):
+            masked = mask_phone_numbers(str(value))
+            return masked if isinstance(value, str) or masked != str(value) else value
 
         return value
 
