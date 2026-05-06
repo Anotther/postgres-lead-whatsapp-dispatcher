@@ -4,7 +4,7 @@ from lead_dispatcher import reporting
 from lead_dispatcher.reporting import DispatchRecord, render_markdown_report, save_reports
 
 
-def test_markdown_report_masks_phone():
+def test_markdown_report_omits_lead_phone_details():
     report = render_markdown_report(
         [
             DispatchRecord(
@@ -19,7 +19,8 @@ def test_markdown_report_masks_phone():
     )
 
     assert "41995306821" not in report
-    assert "4199*****21" in report
+    assert "4199*****21" not in report
+    assert "sua-instancia-principal: 1" in report
 
 
 def test_save_reports_respects_configured_formats(tmp_path, monkeypatch):
@@ -42,6 +43,9 @@ def test_save_reports_respects_configured_formats(tmp_path, monkeypatch):
     assert set(paths) == {"csv", "md"}
     assert paths["csv"].exists()
     assert paths["md"].exists()
+
+    assert "5541995306821" not in paths["csv"].read_text(encoding="utf-8")
+    assert "5541995306821" not in paths["md"].read_text(encoding="utf-8")
 
 
 def test_save_reports_exports_failed_contacts_csv(tmp_path, monkeypatch):

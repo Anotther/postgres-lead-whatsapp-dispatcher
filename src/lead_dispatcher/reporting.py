@@ -3,13 +3,12 @@ from __future__ import annotations
 import csv
 import json
 from collections import Counter
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 from typing import Any
 
 from .settings import settings
-from .utils import mask_phone
 
 
 @dataclass
@@ -32,6 +31,12 @@ def build_report_summary(records: list[DispatchRecord]) -> dict[str, Any]:
     instance_counter = Counter(
         record.instance for record in records if record.instance and record.status == "sent"
     )
+    failure_reason_counter = Counter(
+        record.reason or record.status
+        for record in records
+        if record.status in FAILED_CONTACT_STATUSES
+        or record.status == "skipped"
+    )
 
     return {
         "total": len(records),
@@ -42,6 +47,7 @@ def build_report_summary(records: list[DispatchRecord]) -> dict[str, Any]:
         "failed": status_counter.get("failed", 0),
         "limit_override": sum(1 for record in records if record.limit_override),
         "by_instance": dict(instance_counter),
+        "by_failure_reason": dict(failure_reason_counter),
     }
 
 
@@ -69,52 +75,20 @@ def render_markdown_report(records: list[DispatchRecord]) -> str:
     else:
         lines.append("- Nenhum envio registrado.")
 
-    lines.extend(
-        [
-            "",
-            "## Detalhes",
-            "",
-            "| Lead ID | Nome | Telefone | Telefone normalizado | Instância | "
-            "Mensagem | Status | Motivo | Erro | Override limite |",
-            "|---|---|---|---|---|---|---|---|---|---|",
-        ]
-    )
+    lines.extend(["", "## Falhas por motivo", ""])
 
-    for record in records:
-        row_template = (
-            "| {lead_id} | {full_name} | {phone} | {normalized_phone} | {instance} | "
-            "{message_id} | {status} | {reason} | {error} | {limit_override} |"
-        )
-        lines.append(
-            row_template.format(
-                lead_id=record.lead_id or "",
-                full_name=record.full_name or "",
-                phone=mask_phone(record.phone or ""),
-                normalized_phone=mask_phone(record.normalized_phone or ""),
-                instance=record.instance or "",
-                message_id=record.message_id or "",
-                status=record.status,
-                reason=record.reason or "",
-                error=record.error or "",
-                limit_override=str(record.limit_override).lower(),
-            )
-        )
+    if summary["by_failure_reason"]:
+        for reason, total in summary["by_failure_reason"].items():
+            lines.append(f"- {reason}: {total}")
+    else:
+        lines.append("- Nenhuma falha registrada.")
 
     return "\n".join(lines)
 
 
 REPORT_FIELDS = [
-    "lead_id",
-    "full_name",
-    "phone",
-    "original_phone",
-    "normalized_phone",
-    "instance",
-    "message_id",
-    "status",
-    "reason",
-    "error",
-    "limit_override",
+    "metric",
+    "value",
 ]
 
 FAILED_CONTACT_STATUSES = {
@@ -135,12 +109,28 @@ def parse_report_formats(report_formats: str | None = None) -> set[str]:
     return formats & {"csv", "json", "md"}
 
 
-def _record_to_masked_row(record: DispatchRecord) -> dict[str, Any]:
-    row = asdict(record)
-    row["phone"] = mask_phone(row.get("phone") or "")
-    row["original_phone"] = mask_phone(row.get("original_phone") or "")
-    row["normalized_phone"] = mask_phone(row.get("normalized_phone") or "")
-    return row
+def _summary_rows(records: list[DispatchRecord]) -> list[dict[str, Any]]:
+    summary = build_report_summary(records)
+    rows = [
+        {"metric": "total", "value": summary["total"]},
+        {"metric": "sent", "value": summary["sent"]},
+        {"metric": "skipped", "value": summary["skipped"]},
+        {"metric": "invalid_phone", "value": summary["invalid_phone"]},
+        {
+            "metric": "not_sent_limit_reached",
+            "value": summary["not_sent_limit_reached"],
+        },
+        {"metric": "failed", "value": summary["failed"]},
+        {"metric": "limit_override", "value": summary["limit_override"]},
+    ]
+
+    for instance, total in summary["by_instance"].items():
+        rows.append({"metric": f"sent_by_instance:{instance}", "value": total})
+
+    for reason, total in summary["by_failure_reason"].items():
+        rows.append({"metric": f"failure_reason:{reason}", "value": total})
+
+    return rows
 
 
 def _record_to_failure_row(record: DispatchRecord) -> dict[str, Any]:
@@ -172,7 +162,7 @@ def save_reports(
 
     paths: dict[str, Path] = {}
 
-    rows = [_record_to_masked_row(record) for record in records]
+    rows = _summary_rows(records)
 
     if "csv" in formats:
         paths["csv"] = report_dir / f"{base_name}.csv"
@@ -188,7 +178,6 @@ def save_reports(
             json.dump(
                 {
                     "summary": build_report_summary(records),
-                    "records": rows,
                 },
                 file,
                 ensure_ascii=False,

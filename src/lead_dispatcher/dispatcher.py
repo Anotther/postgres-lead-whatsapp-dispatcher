@@ -52,6 +52,43 @@ def _build_record(
     )
 
 
+def _progress_value(value: int, limit: int | None) -> str:
+    if limit is None:
+        return f"{value}/unlimited"
+
+    return f"{value}/{limit}"
+
+
+def _instance_progress_limit(instance) -> int | None:
+    if instance.run_limit is not None:
+        return instance.run_limit
+
+    return instance.daily_limit
+
+
+def _sent_count(records: list[DispatchRecord]) -> int:
+    return sum(1 for record in records if record.status == "sent")
+
+
+def _log_dispatch_progress(
+    *,
+    lead_id: str | int | None,
+    phone: str,
+    instance,
+    records: list[DispatchRecord],
+) -> None:
+    total_sent = _sent_count(records)
+    logger.info(
+        "Dispatch progress lead_id=%s phone=%s total_progress=%s instance=%s "
+        "instance_progress=%s",
+        lead_id,
+        mask_phone(phone),
+        _progress_value(total_sent, settings.lead_limit),
+        instance.name,
+        _progress_value(instance.sent_count, _instance_progress_limit(instance)),
+    )
+
+
 def _ask_limit_override() -> bool:
     policy = str(getattr(settings, "dispatch_limit_override", "ask")).strip().lower()
 
@@ -179,7 +216,7 @@ def run_dispatch():
     )
 
     try:
-        leads = fetch_leads(limit=settings.lead_limit)
+        leads = fetch_leads()
         instances = load_instances_config()
         state = DispatchState()
         apply_daily_counts(
@@ -209,6 +246,19 @@ def run_dispatch():
 
         for index, lead in enumerate(leads):
             lead_id = _lead_id(lead)
+            if _sent_count(records) >= settings.lead_limit:
+                logger.warning(
+                    "Lead send limit reached total_progress=%s",
+                    _progress_value(_sent_count(records), settings.lead_limit),
+                )
+                _record_remaining_not_sent(
+                    records,
+                    leads,
+                    start_index=index,
+                    reason="lead_limit_reached",
+                )
+                return records
+
             original_phone = str(lead.get("phone") or "")
             phone_result = normalize_phone(
                 original_phone,
@@ -217,8 +267,9 @@ def run_dispatch():
 
             if not phone_result.normalized:
                 logger.info(
-                    "Lead skipped lead_id=%s reason=%s",
+                    "Lead skipped lead_id=%s phone=%s reason=%s",
                     lead_id,
+                    mask_phone(original_phone),
                     phone_result.reason,
                 )
                 records.append(
@@ -239,7 +290,12 @@ def run_dispatch():
             )
 
             if not eligibility.is_eligible:
-                logger.info("Lead skipped lead_id=%s reason=%s", lead_id, eligibility.reason)
+                logger.info(
+                    "Lead skipped lead_id=%s phone=%s reason=%s",
+                    lead_id,
+                    mask_phone(phone_result.normalized),
+                    eligibility.reason,
+                )
                 records.append(
                     _build_record(
                         lead,
@@ -255,11 +311,9 @@ def run_dispatch():
                 continue
 
             logger.info(
-                "Lead eligible lead_id=%s phone=%s course=%s duration=%s",
+                "Lead eligible lead_id=%s phone=%s",
                 lead_id,
                 mask_phone(phone_result.normalized),
-                lead.get("course_interest") or "",
-                lead.get("duration_interest") or "",
             )
 
             while True:
@@ -298,7 +352,11 @@ def run_dispatch():
                     {**lead, "phone": phone_result.normalized}
                 )
             except Exception as exc:
-                logger.exception("Message rendering failed lead_id=%s", lead_id)
+                logger.exception(
+                    "Message rendering failed lead_id=%s phone=%s",
+                    lead_id,
+                    mask_phone(phone_result.normalized),
+                )
                 records.append(
                     _build_record(
                         lead,
@@ -345,6 +403,12 @@ def run_dispatch():
                         limit_override=limit_override,
                     )
                 )
+                _log_dispatch_progress(
+                    lead_id=lead_id,
+                    phone=phone_result.normalized,
+                    instance=instance,
+                    records=records,
+                )
             else:
                 result = client.send_text(
                     instance=instance.name,
@@ -372,6 +436,12 @@ def run_dispatch():
                             normalized_phone=phone_result.normalized,
                             limit_override=limit_override,
                         )
+                    )
+                    _log_dispatch_progress(
+                        lead_id=lead_id,
+                        phone=phone_result.normalized,
+                        instance=instance,
+                        records=records,
                     )
                 else:
                     logger.error(

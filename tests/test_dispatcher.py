@@ -49,11 +49,12 @@ def test_run_dispatch_generates_reports_and_sends_summary(tmp_path, monkeypatch)
     monkeypatch.setattr(dispatcher.settings, "report_recipient_instance", "caixa-01")
     monkeypatch.setattr(dispatcher.settings, "default_country_code", "55")
     monkeypatch.setattr(dispatcher.settings, "stop_on_critical_error", False)
+    monkeypatch.setattr(dispatcher.settings, "lead_limit", 10)
     monkeypatch.setattr(dispatcher, "setup_logging", lambda: None)
     monkeypatch.setattr(
         dispatcher,
         "fetch_leads",
-        lambda limit: [
+        lambda: [
             {
                 "lead_id": 1,
                 "full_name": "Ana Silva",
@@ -95,11 +96,12 @@ def test_run_dispatch_marks_remaining_records_when_limits_are_reached(tmp_path, 
     monkeypatch.setattr(dispatcher.settings, "dry_run", True)
     monkeypatch.setattr(dispatcher.settings, "report_send_whatsapp", False)
     monkeypatch.setattr(dispatcher.settings, "default_country_code", "55")
+    monkeypatch.setattr(dispatcher.settings, "lead_limit", 10)
     monkeypatch.setattr(dispatcher, "setup_logging", lambda: None)
     monkeypatch.setattr(
         dispatcher,
         "fetch_leads",
-        lambda limit: [
+        lambda: [
             {"lead_id": 1, "full_name": "Ana", "phone": "41995306821"},
             {"lead_id": 2, "full_name": "Bruno", "phone": "41995306822"},
         ],
@@ -127,11 +129,12 @@ def test_run_dispatch_handles_keyboard_interrupt_while_waiting(tmp_path, monkeyp
     monkeypatch.setattr(dispatcher.settings, "dry_run", True)
     monkeypatch.setattr(dispatcher.settings, "report_send_whatsapp", False)
     monkeypatch.setattr(dispatcher.settings, "default_country_code", "55")
+    monkeypatch.setattr(dispatcher.settings, "lead_limit", 10)
     monkeypatch.setattr(dispatcher, "setup_logging", lambda: None)
     monkeypatch.setattr(
         dispatcher,
         "fetch_leads",
-        lambda limit: [
+        lambda: [
             {"lead_id": 1, "full_name": "Ana", "phone": "41995306821"},
             {"lead_id": 2, "full_name": "Bruno", "phone": "41995306822"},
         ],
@@ -155,3 +158,39 @@ def test_run_dispatch_handles_keyboard_interrupt_while_waiting(tmp_path, monkeyp
     assert [record.status for record in records] == ["sent", "interrupted"]
     assert records[1].reason == "operator_interrupted"
     assert list(tmp_path.glob("failed_contacts_*.csv"))
+
+
+def test_run_dispatch_uses_lead_limit_as_send_limit(tmp_path, monkeypatch):
+    monkeypatch.setattr(dispatcher.settings, "report_dir", str(tmp_path))
+    monkeypatch.setattr(dispatcher.settings, "report_formats", "csv")
+    monkeypatch.setattr(dispatcher.settings, "dry_run", True)
+    monkeypatch.setattr(dispatcher.settings, "report_send_whatsapp", False)
+    monkeypatch.setattr(dispatcher.settings, "default_country_code", "55")
+    monkeypatch.setattr(dispatcher.settings, "lead_limit", 1)
+    monkeypatch.setattr(dispatcher, "setup_logging", lambda: None)
+    monkeypatch.setattr(
+        dispatcher,
+        "fetch_leads",
+        lambda: [
+            {"lead_id": 1, "full_name": "Ana", "phone": "41995306821"},
+            {"lead_id": 2, "full_name": "Bruno", "phone": "41995306822"},
+            {"lead_id": 3, "full_name": "Carla", "phone": "41995306823"},
+        ],
+    )
+    monkeypatch.setattr(
+        dispatcher,
+        "load_instances_config",
+        lambda: [Instance("caixa-01", 1, 1, run_limit=10)],
+    )
+    monkeypatch.setattr(dispatcher, "DispatchState", FakeDispatchState)
+    monkeypatch.setattr(dispatcher, "EvolutionClient", FakeEvolutionClient)
+    monkeypatch.setattr(dispatcher, "render_message", lambda lead: ("template-1", "Oi"))
+
+    records = dispatcher.run_dispatch()
+
+    assert [record.status for record in records] == [
+        "sent",
+        "not_sent_limit_reached",
+        "not_sent_limit_reached",
+    ]
+    assert records[1].reason == "lead_limit_reached"

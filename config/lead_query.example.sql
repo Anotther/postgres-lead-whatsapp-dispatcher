@@ -20,6 +20,10 @@ Regras recomendadas:
 - sem venda iniciada
 - sem matrícula realizada
 - ordenação pelos leads mais antigos ou prioridade comercial
+
+Observação:
+- Não aplique LIMIT nesta query. O `LEAD_LIMIT` controla apenas quantas
+  mensagens podem ser enviadas por execução no dispatcher.
 */
 
 SELECT
@@ -50,5 +54,4 @@ WHERE
     AND so.id IS NULL
     AND e.id IS NULL
 ORDER BY
-    l.created_at ASC
-LIMIT %(lead_limit)s;
+    l.created_at ASC;
