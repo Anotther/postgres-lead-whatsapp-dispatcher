@@ -4,7 +4,6 @@ from dataclasses import dataclass
 from typing import Any
 
 import httpx
-from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
 from .settings import settings
 
@@ -31,13 +30,8 @@ class EvolutionClient:
         self.base_url = (base_url or settings.evolution_base_url).rstrip("/")
         self.api_key = api_key or settings.evolution_api_key
         self.timeout_seconds = timeout_seconds or getattr(settings, "request_timeout_seconds", 30)
+        self.max_retries = max(1, int(getattr(settings, "max_retries", 3)))
 
-    @retry(
-        retry=retry_if_exception_type((httpx.TimeoutException, httpx.TransportError)),
-        stop=stop_after_attempt(3),
-        wait=wait_exponential(multiplier=1, min=1, max=10),
-        reraise=True,
-    )
     def send_text(
         self,
         *,
@@ -67,37 +61,51 @@ class EvolutionClient:
             "linkPreview": link_preview,
         }
 
-        try:
-            with httpx.Client(timeout=self.timeout_seconds) as client:
-                response = client.post(url, headers=headers, json=payload)
-
+        last_error = None
+        for attempt in range(1, self.max_retries + 1):
             try:
-                response_body = response.json()
-            except ValueError:
-                response_body = {"raw": response.text}
+                with httpx.Client(timeout=self.timeout_seconds) as client:
+                    response = client.post(url, headers=headers, json=payload)
 
-            if 200 <= response.status_code < 300:
+                try:
+                    response_body = response.json()
+                except ValueError:
+                    response_body = {"raw": response.text}
+
+                if 200 <= response.status_code < 300:
+                    return SendMessageResult(
+                        success=True,
+                        instance=instance,
+                        number=number,
+                        status_code=response.status_code,
+                        response=response_body,
+                    )
+
                 return SendMessageResult(
-                    success=True,
+                    success=False,
                     instance=instance,
                     number=number,
                     status_code=response.status_code,
                     response=response_body,
+                    error=f"evolution_api_error_{response.status_code}",
                 )
 
-            return SendMessageResult(
-                success=False,
-                instance=instance,
-                number=number,
-                status_code=response.status_code,
-                response=response_body,
-                error=f"evolution_api_error_{response.status_code}",
-            )
+            except (httpx.TimeoutException, httpx.TransportError) as exc:
+                last_error = str(exc)
+                if attempt == self.max_retries:
+                    break
 
-        except Exception as exc:
-            return SendMessageResult(
-                success=False,
-                instance=instance,
-                number=number,
-                error=str(exc),
-            )
+            except Exception as exc:
+                return SendMessageResult(
+                    success=False,
+                    instance=instance,
+                    number=number,
+                    error=str(exc),
+                )
+
+        return SendMessageResult(
+            success=False,
+            instance=instance,
+            number=number,
+            error=last_error or "evolution_transport_error",
+        )

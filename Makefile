@@ -1,4 +1,4 @@
-.PHONY: install install-dev test lint check clean
+.PHONY: install install-dev test lint check postgres-hdd-setup run-mock clean
 
 PYTHON ?= python3
 
@@ -15,6 +15,12 @@ lint:
 	$(PYTHON) -m ruff check .
 
 check: lint test
+
+postgres-hdd-setup:
+	bash scripts/setup_postgres_hdd.sh
+
+run-mock:
+	LEAD_LIMIT=1 $(PYTHON) -m lead_dispatcher.main
 
 clean:
 	rm -rf .pytest_cache .ruff_cache build dist htmlcov

@@ -39,8 +39,10 @@ Antes de enviar uma mensagem, o sistema:
 | Paralelismo operacional | Se uma instância estiver em delay, outra disponível pode continuar enviando. |
 | Dry-run | Permite simular envios sem chamar a API real. |
 | Logs rotativos | Logs salvos em `logs/` com retenção automática. |
-| Relatórios | Geração planejada de relatórios em CSV, JSON e Markdown. |
-| Envio de relatório | Possibilidade de enviar resumo final para um destinatário via WhatsApp. |
+| Relatórios | Gera relatórios em CSV, JSON e Markdown conforme `REPORT_FORMATS`. |
+| Base de falhas | Gera CSV separado com contatos inválidos, falhas e não enviados por limite. |
+| Envio de relatório | Envia resumo final para um destinatário via WhatsApp quando habilitado. |
+| Projeto no GitHub | Este projeto foi usado para documentar e versionar o dispatcher no GitHub. Repositório: [Anotther/postgres-lead-whatsapp-dispatcher](https://github.com/Anotther/postgres-lead-whatsapp-dispatcher). |
 
 ## Como funciona a distribuição entre instâncias
 
@@ -213,16 +215,25 @@ DRY_RUN=true
 DEFAULT_COUNTRY_CODE=55
 REQUEST_TIMEOUT_SECONDS=30
 MAX_RETRIES=3
+STOP_ON_CRITICAL_ERROR=false
+DISPATCH_LIMIT_OVERRIDE=ask
+LIMIT_OVERRIDE_PROMPT_TIMEOUT_SECONDS=120
+DISPATCH_STATE_PATH=data/dispatch_state.json
 
 LOG_DIR=logs
 LOG_RETENTION_DAYS=7
 LOG_MASK_PHONE=true
 
 REPORT_DIR=reports
+REPORT_FORMATS=csv,json,md
 REPORT_SEND_WHATSAPP=false
 REPORT_RECIPIENT_NUMBER=5599999999999
 REPORT_RECIPIENT_INSTANCE=sua-instancia-principal
 ```
+
+`DISPATCH_LIMIT_OVERRIDE` aceita `ask`, `always` ou `never`. Com `ask`, se todas as instâncias atingirem `run_limit` ou `daily_limit`, o sistema pergunta no terminal por até 120 segundos se deve continuar ultrapassando os limites apenas naquela execução.
+
+O controle diário fica em `DISPATCH_STATE_PATH` e armazena somente contadores por instância, sem dados pessoais.
 
 ## Setup local com Postgres HDD
 
@@ -235,6 +246,7 @@ config/messages.yml
 config/lead_query.sql
 config/setup_postgres_hdd.sql
 data/leads_mock.csv
+data/dispatch_state.json
 logs/*
 reports/*
 ```
@@ -244,8 +256,7 @@ Nesta branch, foi criado um `.env` local apontando para `POSTGRES_DB=postgres_hd
 Para criar e popular o banco local com o mock:
 
 ```bash
-createdb postgres_hdd
-psql -d postgres_hdd -f config/setup_postgres_hdd.sql
+make postgres-hdd-setup
 ```
 
 O mock local usa `41995306821` em todos os contatos para evitar disparo acidental para números reais durante testes.

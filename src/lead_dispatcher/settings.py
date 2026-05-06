@@ -40,6 +40,9 @@ class Settings(BaseSettings):
     max_retries: int = 3
     request_timeout_seconds: int = 30
     stop_on_critical_error: bool = False
+    dispatch_limit_override: str = "ask"
+    limit_override_prompt_timeout_seconds: int = 120
+    dispatch_state_path: str = "data/dispatch_state.json"
 
     # Logs
     log_level: str = "INFO"
