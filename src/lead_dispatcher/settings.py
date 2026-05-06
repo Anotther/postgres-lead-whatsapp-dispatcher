@@ -30,6 +30,8 @@ class Settings(BaseSettings):
     evolution_base_url: str = "http://localhost:8080"
     evolution_api_key: str = "change_me"
     evolution_send_text_path: str = "/message/sendText/{instance}"
+    evolution_instance_status_path: str = "/instance/status"
+    evolution_connected_states: str = "open,connected,online"
 
     # Config files
     instances_config_path: str = "config/instances.example.yml"

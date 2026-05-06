@@ -70,6 +70,124 @@ def _sent_count(records: list[DispatchRecord]) -> int:
     return sum(1 for record in records if record.status == "sent")
 
 
+def _remaining_capacity(instance) -> int | None:
+    capacities = []
+
+    if instance.run_limit is not None:
+        capacities.append(max(0, instance.run_limit - instance.sent_count))
+
+    if instance.daily_limit is not None:
+        capacities.append(max(0, instance.daily_limit - instance.daily_sent_count))
+
+    if not capacities:
+        return None
+
+    return min(capacities)
+
+
+def _planned_send_count(leads: list[dict[str, Any]], instances) -> int:
+    planned = min(len(leads), settings.lead_limit)
+    total_limited_capacity = 0
+    has_unlimited_instance = False
+
+    for instance in instances:
+        capacity = _remaining_capacity(instance)
+        if capacity is None:
+            has_unlimited_instance = True
+        else:
+            total_limited_capacity += capacity
+
+    if has_unlimited_instance:
+        return planned
+
+    return min(planned, total_limited_capacity)
+
+
+def _format_duration(seconds: float) -> str:
+    rounded_seconds = max(0, int(round(seconds)))
+    minutes, seconds = divmod(rounded_seconds, 60)
+    hours, minutes = divmod(minutes, 60)
+
+    if hours:
+        return f"{hours}h{minutes:02d}m{seconds:02d}s"
+
+    if minutes:
+        return f"{minutes}m{seconds:02d}s"
+
+    return f"{seconds}s"
+
+
+def _estimate_dispatch_seconds(planned_send_count: int, instances) -> float:
+    if planned_send_count <= 1 or not instances:
+        return 0
+
+    slots = []
+    for instance in instances:
+        capacity = _remaining_capacity(instance)
+        if capacity is None:
+            capacity = planned_send_count
+
+        if capacity <= 0:
+            continue
+
+        average_delay = (instance.min_delay + instance.max_delay) / 2
+        slots.append(
+            {
+                "available_at": 0.0,
+                "sent": instance.sent_count,
+                "average_delay": average_delay,
+                "remaining": capacity,
+            }
+        )
+
+    estimated_seconds = 0.0
+    for _ in range(planned_send_count):
+        if not slots:
+            break
+
+        slot = sorted(slots, key=lambda item: (item["available_at"], item["sent"]))[0]
+        estimated_seconds = max(estimated_seconds, slot["available_at"])
+        slot["available_at"] += slot["average_delay"]
+        slot["sent"] += 1
+        slot["remaining"] -= 1
+
+        if slot["remaining"] <= 0:
+            slots.remove(slot)
+
+    return estimated_seconds
+
+
+def _log_startup_context(leads: list[dict[str, Any]], instances) -> None:
+    instance_names = ",".join(instance.name for instance in instances)
+    planned_sends = _planned_send_count(leads, instances)
+    estimated_seconds = _estimate_dispatch_seconds(planned_sends, instances)
+
+    logger.info(
+        "Dispatch plan leads_loaded=%s lead_limit=%s enabled_instances=%s "
+        "instances=%s planned_sends=%s estimated_duration=%s",
+        len(leads),
+        settings.lead_limit,
+        len(instances),
+        instance_names,
+        planned_sends,
+        _format_duration(estimated_seconds),
+    )
+
+    if len(instances) == 1:
+        logger.info("Only one enabled instance configured instance=%s", instances[0].name)
+
+
+def _sleep_quietly(seconds: int) -> None:
+    deadline = time.time() + max(0, seconds)
+
+    while True:
+        remaining = deadline - time.time()
+        if remaining <= 0:
+            return
+
+        time.sleep(min(remaining, 5))
+
+
 def _log_dispatch_progress(
     *,
     lead_id: str | int | None,
@@ -160,6 +278,48 @@ def _record_remaining_not_sent(
         )
 
 
+def _record_all_not_sent(
+    records: list[DispatchRecord],
+    leads: list[dict[str, Any]],
+    *,
+    reason: str,
+    status: str = "not_sent_limit_reached",
+) -> None:
+    _record_remaining_not_sent(
+        records,
+        leads,
+        start_index=0,
+        reason=reason,
+        status=status,
+    )
+
+
+def _validate_connected_instances(
+    client: EvolutionClient,
+    instances,
+) -> bool:
+    for instance in instances:
+        status = client.get_instance_status(instance.name)
+        if status.connected:
+            logger.info(
+                "Evolution instance connected instance=%s state=%s",
+                instance.name,
+                status.state,
+            )
+            continue
+
+        logger.error(
+            "Evolution instance not connected instance=%s state=%s status_code=%s error=%s",
+            instance.name,
+            status.state or "",
+            status.status_code or "",
+            status.error or "not_connected",
+        )
+        return False
+
+    return True
+
+
 def _send_whatsapp_summary(
     client: EvolutionClient,
     records: list[DispatchRecord],
@@ -242,6 +402,13 @@ def run_dispatch():
                 start_index=0,
                 reason="no_enabled_instances",
             )
+            return records
+
+        _log_startup_context(leads, enabled_instances)
+
+        if not _validate_connected_instances(client, enabled_instances):
+            logger.error("Mailing stopped; one or more enabled instances are not connected")
+            _record_all_not_sent(records, leads, reason="instance_not_connected")
             return records
 
         for index, lead in enumerate(leads):
@@ -336,13 +503,17 @@ def run_dispatch():
                 next_instance = pool.next_available_instance(ignore_limits=limit_override)
                 if next_instance:
                     wait_seconds = max(1, int(next_instance.next_available_at - time.time()))
+                    release_at = time.strftime(
+                        "%Y-%m-%d %H:%M:%S",
+                        time.localtime(time.time() + wait_seconds),
+                    )
                     logger.info(
-                        "No available instance; waiting next_available_instance=%s "
-                        "wait_seconds=%s",
+                        "Instance in delay instance=%s wait_seconds=%s available_at=%s",
                         next_instance.name,
                         wait_seconds,
+                        release_at,
                     )
-                    time.sleep(min(wait_seconds, 5))
+                    _sleep_quietly(wait_seconds)
                 else:
                     logger.info("No available instance; waiting wait_seconds=1")
                     time.sleep(1)

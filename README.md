@@ -207,6 +207,8 @@ LEAD_LIMIT=100
 EVOLUTION_BASE_URL=http://localhost:8080
 EVOLUTION_API_KEY=change_me
 EVOLUTION_SEND_TEXT_PATH=/message/sendText/{instance}
+EVOLUTION_INSTANCE_STATUS_PATH=/instance/status
+EVOLUTION_CONNECTED_STATES=open,connected,online
 
 INSTANCES_CONFIG_PATH=config/instances.yml
 MESSAGES_CONFIG_PATH=config/messages.yml
@@ -284,6 +286,10 @@ Este é um exemplo de como o sistema deve se comportar quando estiver funcionand
 2026-05-02 10:00:01 | INFO | lead_dispatcher.database | Connected to PostgreSQL host=localhost port=5432 db=postgres_hdd sslmode=prefer
 2026-05-02 10:00:01 | INFO | lead_dispatcher.repository | Fetching leads query_path=config/lead_query.sql
 2026-05-02 10:00:02 | INFO | lead_dispatcher.repository | Leads fetched total=15
+2026-05-02 10:00:02 | INFO | lead_dispatcher.dispatcher | Dispatch plan leads_loaded=15 lead_limit=100 enabled_instances=3 instances=caixa-01,caixa-02,caixa-03 planned_sends=15 estimated_duration=6m52s
+2026-05-02 10:00:02 | INFO | lead_dispatcher.dispatcher | Evolution instance connected instance=caixa-01 state=connected
+2026-05-02 10:00:02 | INFO | lead_dispatcher.dispatcher | Evolution instance connected instance=caixa-02 state=connected
+2026-05-02 10:00:02 | INFO | lead_dispatcher.dispatcher | Evolution instance connected instance=caixa-03 state=connected
 2026-05-02 10:00:02 | INFO | lead_dispatcher.dispatcher | Lead eligible lead_id=1 phone=5541*******21
 2026-05-02 10:00:02 | INFO | lead_dispatcher.dispatcher | Rendered message lead_id=1 template=ead_continuidade_01 phone=5541*******21
 2026-05-02 10:00:02 | INFO | lead_dispatcher.dispatcher | Dry-run enabled; message not sent lead_id=1 instance=caixa-01 phone=5541*******21
@@ -296,7 +302,7 @@ Este é um exemplo de como o sistema deve se comportar quando estiver funcionand
 2026-05-02 10:00:04 | INFO | lead_dispatcher.dispatcher | Rendered message lead_id=3 template=ead_continuidade_02 phone=5541*******21
 2026-05-02 10:00:04 | INFO | lead_dispatcher.dispatcher | Dry-run enabled; message not sent lead_id=3 instance=caixa-03 phone=5541*******21
 2026-05-02 10:00:04 | INFO | lead_dispatcher.dispatcher | Dispatch progress lead_id=3 phone=5541*******21 total_progress=3/100 instance=caixa-03 instance_progress=1/100
-2026-05-02 10:00:05 | INFO | lead_dispatcher.dispatcher | No available instance; waiting next_available_instance=caixa-03 wait_seconds=60
+2026-05-02 10:00:05 | INFO | lead_dispatcher.dispatcher | Instance in delay instance=caixa-03 wait_seconds=60 available_at=2026-05-02 10:01:05
 2026-05-02 10:01:06 | INFO | lead_dispatcher.dispatcher | Lead skipped lead_id=8 phone=5541*******21 reason=sale_started
 2026-05-02 10:01:07 | INFO | lead_dispatcher.dispatcher | Lead skipped lead_id=11 phone=5541*******21 reason=missing_whatsapp_opt_in
 2026-05-02 10:03:21 | INFO | lead_dispatcher.dispatcher | Reports generated csv=reports/send_report_2026-05-02_100321.csv json=reports/send_report_2026-05-02_100321.json md=reports/send_report_2026-05-02_100321.md
