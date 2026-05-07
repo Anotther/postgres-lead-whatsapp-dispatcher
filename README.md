@@ -1,52 +1,79 @@
 # postgres-lead-whatsapp-dispatcher
 
-Script Python modular para consultar leads no PostgreSQL, validar status comercial e distribuir envios via Evolution Go/Evolution API.
+Dispatcher em Python para consultar leads no PostgreSQL, aplicar regras de elegibilidade comercial e distribuir mensagens entre instâncias de WhatsApp usando Evolution Go/Evolution API.
 
-## Valor central
+O projeto demonstra uma automação operacional comum em times comerciais: selecionar contatos elegíveis por SQL, montar mensagens personalizadas, respeitar limites por instância e registrar a execução com logs e relatórios.
 
-Este projeto automatiza o envio controlado de mensagens para leads interessados em cursos de ensino superior, evitando contato com pessoas que já tiveram venda iniciada, matrícula realizada ou que não estejam elegíveis para contato.
+> A integração usa Evolution Go/Evolution API, uma API não oficial para WhatsApp. O uso real exige opt-in/base legal, controle de volume, política de opt-out e atenção à LGPD.
 
-O foco é criar uma base simples, configurável e reutilizável para operações comerciais que precisam consultar uma base PostgreSQL, montar mensagens personalizadas e distribuir disparos entre múltiplas instâncias de WhatsApp.
+## Visão geral
 
-## Caso de uso real
+O fluxo foi pensado para uma operação de ensino superior EAD, onde leads deixam interesse em um curso e precisam receber uma abordagem inicial ou de continuidade. Antes de qualquer envio, o dispatcher consulta a base, remove contatos que não devem receber mensagem e decide qual instância está disponível.
 
-Uma instituição de ensino possui uma vitrine de inscrições para cursos de ensino superior EAD. O lead informa dados como nome, telefone, curso de interesse e duração aproximada do curso.
+Na prática, o sistema:
 
-Antes de enviar uma mensagem, o sistema:
+1. Lê configurações via `.env` e arquivos YAML.
+2. Executa uma query SQL externa no PostgreSQL.
+3. Valida telefone, opt-in e status comercial do lead.
+4. Confere se as instâncias configuradas estão conectadas.
+5. Renderiza uma mensagem com saudação e placeholders.
+6. Escolhe uma instância disponível de WhatsApp.
+7. Simula ou envia a mensagem conforme `DRY_RUN`.
+8. Aplica delay individual por instância.
+9. Gera logs e relatórios de execução.
 
-1. Consulta os leads no PostgreSQL.
-2. Filtra quem ainda não iniciou venda ou matrícula.
-3. Valida telefone, opt-in e elegibilidade.
-4. Escolhe uma variação de mensagem.
-5. Preenche nome, curso e duração de interesse.
-6. Seleciona uma instância disponível.
-7. Envia ou simula o envio, conforme `DRY_RUN`.
-8. Aplica delay aleatório individual na instância usada.
-9. Gera logs e relatório de execução.
+## O que foi implementado
 
-## Funcionalidades
-
-| Funcionalidade | Descrição |
+| Área | Entrega |
 |---|---|
-| Consulta PostgreSQL | Banco configurável via `.env`, incluindo host, porta, banco, usuário, senha e SSL mode. |
-| Query customizável | A query de leads fica em arquivo SQL externo, configurado por `LEAD_QUERY_PATH`. |
-| Mensagem customizável | Templates ficam em `config/messages.yml`, com variações e placeholders. |
-| Saudação aleatória | Permite alternar automaticamente entre `Oi`, `Olá`, `Oi!`, `Bom dia`, `Boa tarde`, entre outras. |
-| Personalização por lead | Suporta placeholders como `{first_name}`, `{course_interest}` e `{duration_interest}`. |
-| Múltiplas instâncias | Instâncias de WhatsApp configuradas por YAML em `config/instances.yml`. |
-| Distribuição tipo round-robin | O sistema usa a próxima instância disponível e evita instâncias em delay. |
-| Delay individual | Cada instância recebe um delay aleatório próprio após cada disparo. |
-| Paralelismo operacional | Se uma instância estiver em delay, outra disponível pode continuar enviando. |
-| Dry-run | Permite simular envios sem chamar a API real. |
-| Logs rotativos | Logs salvos em `logs/` com retenção automática. |
-| Relatórios | Gera um relatório agregado no formato definido por `REPORT_FORMATS`, sem telefones ou linhas por lead. |
-| Bases operacionais | Gera CSV separado de enviados e CSV separado de falhas/não enviados. |
-| Envio de relatório | Envia resumo final para um destinatário via WhatsApp quando habilitado. |
-| Projeto no GitHub | Este projeto foi usado para documentar e versionar o dispatcher no GitHub. Repositório: [Anotther/postgres-lead-whatsapp-dispatcher](https://github.com/Anotther/postgres-lead-whatsapp-dispatcher). |
+| Consulta de leads | Query SQL versionada como exemplo e configurável por `LEAD_QUERY_PATH`. |
+| Elegibilidade | Filtros para telefone válido, opt-in, venda iniciada, matrícula e envio anterior. |
+| Mensagens | Templates em YAML com variações, peso e placeholders por lead. |
+| Instâncias | Pool de instâncias com `enabled`, delay, limite por execução e limite diário. |
+| Distribuição | Seleção da instância disponível com menor volume na execução. |
+| Segurança operacional | `DRY_RUN` ativo por padrão, mascaramento de telefone em logs e configs reais fora do git. |
+| Relatórios | Resumo em `md`, `csv` ou `json`, CSV de enviados e CSV de falhas/não enviados. |
+| Qualidade | Testes com `pytest`, lint com `ruff` e CI no GitHub Actions. |
 
-## Como funciona a distribuição entre instâncias
+## Ferramentas e tecnologias
 
-A distribuição não é um loop simples com um único delay global. Cada instância tem seu próprio controle de disponibilidade.
+- Python 3.11+
+- PostgreSQL
+- SQL externo para seleção de leads
+- YAML para mensagens e instâncias
+- Pydantic Settings para configuração por ambiente
+- HTTPX para chamadas HTTP
+- Evolution Go/Evolution API para envio via WhatsApp
+- pytest para testes automatizados
+- ruff para lint
+- GitHub Actions para CI
+- Gitleaks para varredura de segredos no pipeline
+
+## Fluxo de funcionamento
+
+```mermaid
+flowchart TD
+    A[Início] --> B[Carrega .env e YAML]
+    B --> C[Executa query no PostgreSQL]
+    C --> D{Lead elegível?}
+    D -- Não --> E[Registra motivo no relatório]
+    D -- Sim --> F[Valida instâncias conectadas]
+    F --> G[Renderiza mensagem]
+    G --> H{Instância disponível?}
+    H -- Não --> I[Aguarda fim do delay]
+    I --> H
+    H -- Sim --> J[Seleciona instância com menor uso]
+    J --> K{DRY_RUN?}
+    K -- Sim --> L[Simula envio]
+    K -- Não --> M[Envia via Evolution API]
+    L --> N[Aplica delay da instância]
+    M --> N
+    N --> O[Atualiza estado, logs e relatórios]
+```
+
+## Distribuição entre instâncias
+
+Cada instância tem seu próprio delay e seus próprios limites. Isso evita bloquear toda a execução quando apenas uma instância acabou de enviar.
 
 Exemplo:
 
@@ -56,142 +83,34 @@ caixa-02 continua livre e pode enviar outro lead
 caixa-03 continua livre e pode enviar outro lead
 ```
 
-O comportamento esperado é:
+A próxima mensagem vai para uma instância livre, priorizando a que tem menor quantidade de envios na execução. Se todas estiverem em delay, o processo aguarda a próxima disponibilidade. Se todas atingirem limite, o comportamento depende de `DISPATCH_LIMIT_OVERRIDE`.
 
-1. O sistema verifica quais instâncias estão habilitadas.
-2. Remove temporariamente as instâncias que ainda estão em delay.
-3. Entre as disponíveis, escolhe a que tem menor volume de envios na execução.
-4. Envia a mensagem.
-5. Sorteia um delay entre `min_delay_seconds` e `max_delay_seconds` daquela instância.
-6. Marca essa instância como indisponível até o fim do delay.
-7. Continua usando as outras instâncias disponíveis.
+## Configuração
 
-Isso cria um comportamento de round-robin operacional por disponibilidade: a próxima mensagem vai para uma instância livre, mantendo distribuição equilibrada sem travar todas as caixas por causa do delay de uma única instância.
-
-## Diagrama de funcionamento
-
-```mermaid
-flowchart TD
-    A[Início da execução] --> B[Carregar .env]
-    B --> C[Carregar instances.yml]
-    C --> D[Carregar messages.yml]
-    D --> E[Executar query SQL no PostgreSQL]
-    E --> F[Receber leads]
-    F --> G{Lead elegível?}
-
-    G -- Não --> H[Registrar como ignorado]
-    H --> R[Adicionar ao relatório]
-
-    G -- Sim --> I[Escolher template de mensagem]
-    I --> J[Sortear saudação]
-    J --> K[Renderizar mensagem com nome, curso e duração]
-    K --> L{Existe instância disponível?}
-
-    L -- Não --> M[Aguardar próxima instância sair do delay]
-    M --> L
-
-    L -- Sim --> N[Selecionar instância com menor uso]
-    N --> O{DRY_RUN ativo?}
-
-    O -- Sim --> P[Simular envio]
-    O -- Não --> Q[Enviar via Evolution API]
-
-    P --> S[Registrar sucesso simulado]
-    Q --> T{Envio aceito?}
-
-    T -- Sim --> U[Registrar sucesso]
-    T -- Não --> V[Registrar falha]
-
-    S --> W[Sortear delay individual da instância]
-    U --> W
-    V --> R
-
-    W --> X[Marcar instância em delay]
-    X --> R
-    R --> Y{Ainda há leads?}
-
-    Y -- Sim --> G
-    Y -- Não --> Z[Gerar relatório final]
-```
-
-## Exemplo de configuração de instâncias
-
-Arquivo:
+O repositório versiona apenas arquivos de exemplo. Os arquivos reais devem ficar fora do git:
 
 ```txt
+.env
 config/instances.yml
-```
-
-Exemplo:
-
-```yml
-instances:
-  - name: caixa-01
-    enabled: true
-    min_delay_seconds: 45
-    max_delay_seconds: 120
-    run_limit: 100
-    daily_limit: 300
-    report_enabled: true
-
-  - name: caixa-02
-    enabled: true
-    min_delay_seconds: 60
-    max_delay_seconds: 150
-    run_limit: 100
-    daily_limit: 300
-    report_enabled: false
-```
-
-Neste exemplo, `caixa-01` e `caixa-02` podem enviar mensagens independentemente. Se `caixa-01` enviar e entrar em delay, `caixa-02` ainda pode continuar enviando.
-
-## Exemplo de mensagem customizável
-
-Arquivo:
-
-```txt
 config/messages.yml
+config/lead_query.sql
+config/setup_postgres_hdd.sql
+data/leads_mock.csv
+data/dispatch_state.json
+logs/*
+reports/*
 ```
 
-Exemplo:
+Crie os arquivos locais a partir dos exemplos:
 
-```yml
-greeting_variations:
-  - Oi
-  - Olá
-  - Oi!
-  - Olá!
-  - Bom dia
-  - Boa tarde
-  - Boa noite
-
-messages:
-  - id: ead_continuidade_01
-    enabled: true
-    weight: 1
-    text: |
-      {greeting}, {first_name}. Tudo bem?
-
-      Vi que você demonstrou interesse no curso de {course_interest}, com duração aproximada de {duration_interest}.
-
-      Estou entrando em contato para saber se você precisa de ajuda para dar continuidade na sua inscrição.
+```bash
+cp .env.example .env
+cp config/instances.example.yml config/instances.yml
+cp config/messages.example.yml config/messages.yml
+cp config/lead_query.example.sql config/lead_query.sql
 ```
 
-Exemplo renderizado:
-
-```txt
-Olá, Ana. Tudo bem?
-
-Vi que você demonstrou interesse no curso de Administração, com duração aproximada de 4 anos.
-
-Estou entrando em contato para saber se você precisa de ajuda para dar continuidade na sua inscrição.
-```
-
-## Configuração via `.env`
-
-O banco de dados, API, caminhos de configuração, logs e relatórios são controlados por variáveis de ambiente.
-
-Exemplo:
+Exemplo de variáveis principais:
 
 ```env
 POSTGRES_HOST=localhost
@@ -230,81 +149,74 @@ REPORT_DIR=reports
 REPORT_FORMATS=md
 REPORT_KEEP_HISTORY=false
 REPORT_SEND_WHATSAPP=false
-REPORT_RECIPIENT_NUMBER=5599999999999
-REPORT_RECIPIENT_INSTANCE=sua-instancia-principal
 ```
 
 `DISPATCH_LIMIT_OVERRIDE` aceita `ask`, `always` ou `never`. Com `ask`, se todas as instâncias atingirem `run_limit` ou `daily_limit`, o sistema pergunta no terminal por até 120 segundos se deve continuar ultrapassando os limites apenas naquela execução.
 
-`LEAD_LIMIT` limita a quantidade de mensagens enviadas na execução. A query em `LEAD_QUERY_PATH` deve buscar todos os leads elegíveis sem `LIMIT`; o dispatcher decide quantos enviar.
+`LEAD_LIMIT` limita a quantidade de mensagens enviadas na execução. A query em `LEAD_QUERY_PATH` deve buscar os leads elegíveis; o dispatcher decide quantos enviar.
 
 O controle diário fica em `DISPATCH_STATE_PATH` e armazena somente contadores por instância, sem dados pessoais.
 
-`REPORT_FORMATS` aceita `md`, `csv` ou `json`, mas o dispatcher gera apenas um relatório principal por execução. Com `REPORT_KEEP_HISTORY=false`, relatórios antigos em `reports/` são apagados antes de salvar a nova execução. Além do relatório principal, o sistema gera `sent_contacts_*.csv` com `lead_id`, telefone e instância dos envios, e `failed_contacts_*.csv` com falhas e não enviados.
+`REPORT_FORMATS` aceita `md`, `csv` ou `json`, mas o dispatcher gera apenas um relatório principal por execução. Além do relatório principal, o sistema gera `sent_contacts_*.csv` com `lead_id`, telefone e instância dos envios, e `failed_contacts_*.csv` com falhas e não enviados.
 
-## Setup local com Postgres HDD
+Exemplo de instâncias:
 
-O repositório mantém apenas exemplos versionados. Os arquivos reais abaixo ficam no `.gitignore`:
+```yml
+instances:
+  - name: sua-instancia-principal
+    enabled: true
+    min_delay_seconds: 45
+    max_delay_seconds: 120
+    run_limit: 100
+    daily_limit: 300
+    report_enabled: true
 
-```txt
-.env
-config/instances.yml
-config/messages.yml
-config/lead_query.sql
-config/setup_postgres_hdd.sql
-data/leads_mock.csv
-data/dispatch_state.json
-logs/*
-reports/*
+  - name: sua-instancia-secundaria
+    enabled: true
+    min_delay_seconds: 60
+    max_delay_seconds: 150
+    run_limit: 100
+    daily_limit: 300
+    report_enabled: false
 ```
 
-Nesta branch, foi criado um `.env` local apontando para `POSTGRES_DB=postgres_hdd`, com `DRY_RUN=true` e `LOG_MASK_PHONE=true`. Preencha `POSTGRES_USER`, `POSTGRES_PASSWORD`, `EVOLUTION_API_KEY` e o nome real da instância antes de usar.
+Exemplo de template de mensagem:
 
-Para criar e popular o banco local com o mock:
+```yml
+greeting_variations:
+  - Oi
+  - Olá
+  - Bom dia
+  - Boa tarde
 
-```bash
-make postgres-hdd-setup
+messages:
+  - id: ead_continuidade_01
+    enabled: true
+    weight: 1
+    text: |
+      {greeting}, {first_name}. Tudo bem?
+
+      Vi que você demonstrou interesse no curso de {course_interest}, com duração aproximada de {duration_interest}.
+
+      Estou entrando em contato para saber se você precisa de ajuda para dar continuidade na sua inscrição.
 ```
 
-O mock local usa `41995306821` em todos os contatos para evitar disparo acidental para números reais durante testes.
+## Exemplo de log
 
-## Exemplo de mensagem enviada no WhatsApp
-
-```txt
-Olá, Ana. Tudo bem?
-
-Vi que você demonstrou interesse no curso de Administração, com duração aproximada de 4 anos.
-
-Estou entrando em contato para saber se você precisa de ajuda para dar continuidade na sua inscrição.
-```
-
-## Exemplo de log de execução
-
-Este é um exemplo de como o sistema deve se comportar quando estiver funcionando:
+O trecho abaixo mostra uma execução em `DRY_RUN`, com telefones mascarados, instâncias conectadas, distribuição dos leads, delay, skips de elegibilidade e geração de relatórios.
 
 ```txt
 2026-05-02 10:00:00 | INFO | lead_dispatcher.main | Starting dispatcher app=postgres-lead-whatsapp-dispatcher dry_run=true
 2026-05-02 10:00:00 | INFO | lead_dispatcher.config | Loaded instances config path=config/instances.yml enabled_instances=3
 2026-05-02 10:00:00 | INFO | lead_dispatcher.config | Loaded messages config path=config/messages.yml enabled_templates=5 greeting_variations=7
 2026-05-02 10:00:01 | INFO | lead_dispatcher.database | Connected to PostgreSQL host=localhost port=5432 db=postgres_hdd sslmode=prefer
-2026-05-02 10:00:01 | INFO | lead_dispatcher.repository | Fetching leads query_path=config/lead_query.sql
 2026-05-02 10:00:02 | INFO | lead_dispatcher.repository | Leads fetched total=15
 2026-05-02 10:00:02 | INFO | lead_dispatcher.dispatcher | Dispatch plan leads_loaded=15 lead_limit=100 enabled_instances=3 instances=caixa-01,caixa-02,caixa-03 planned_sends=15 estimated_duration=6m52s
 2026-05-02 10:00:02 | INFO | lead_dispatcher.dispatcher | Evolution instance connected instance=caixa-01 state=connected
-2026-05-02 10:00:02 | INFO | lead_dispatcher.dispatcher | Evolution instance connected instance=caixa-02 state=connected
-2026-05-02 10:00:02 | INFO | lead_dispatcher.dispatcher | Evolution instance connected instance=caixa-03 state=connected
 2026-05-02 10:00:02 | INFO | lead_dispatcher.dispatcher | Lead eligible lead_id=1 phone=5541*******21
 2026-05-02 10:00:02 | INFO | lead_dispatcher.dispatcher | Rendered message lead_id=1 template=ead_continuidade_01 phone=5541*******21
 2026-05-02 10:00:02 | INFO | lead_dispatcher.dispatcher | Dry-run enabled; message not sent lead_id=1 instance=caixa-01 phone=5541*******21
 2026-05-02 10:00:02 | INFO | lead_dispatcher.dispatcher | Dispatch progress lead_id=1 phone=5541*******21 total_progress=1/100 instance=caixa-01 instance_progress=1/100
-2026-05-02 10:00:03 | INFO | lead_dispatcher.dispatcher | Lead eligible lead_id=2 phone=5541*******21
-2026-05-02 10:00:03 | INFO | lead_dispatcher.dispatcher | Rendered message lead_id=2 template=ead_continuidade_03 phone=5541*******21
-2026-05-02 10:00:03 | INFO | lead_dispatcher.dispatcher | Dry-run enabled; message not sent lead_id=2 instance=caixa-02 phone=5541*******21
-2026-05-02 10:00:03 | INFO | lead_dispatcher.dispatcher | Dispatch progress lead_id=2 phone=5541*******21 total_progress=2/100 instance=caixa-02 instance_progress=1/100
-2026-05-02 10:00:04 | INFO | lead_dispatcher.dispatcher | Lead eligible lead_id=3 phone=5541*******21
-2026-05-02 10:00:04 | INFO | lead_dispatcher.dispatcher | Rendered message lead_id=3 template=ead_continuidade_02 phone=5541*******21
-2026-05-02 10:00:04 | INFO | lead_dispatcher.dispatcher | Dry-run enabled; message not sent lead_id=3 instance=caixa-03 phone=5541*******21
-2026-05-02 10:00:04 | INFO | lead_dispatcher.dispatcher | Dispatch progress lead_id=3 phone=5541*******21 total_progress=3/100 instance=caixa-03 instance_progress=1/100
 2026-05-02 10:00:05 | INFO | lead_dispatcher.dispatcher | Instance in delay instance=caixa-03 wait_seconds=60 available_at=2026-05-02 10:01:05
 2026-05-02 10:01:06 | INFO | lead_dispatcher.dispatcher | Lead skipped lead_id=8 phone=5541*******21 reason=sale_started
 2026-05-02 10:01:07 | INFO | lead_dispatcher.dispatcher | Lead skipped lead_id=11 phone=5541*******21 reason=missing_whatsapp_opt_in
@@ -312,41 +224,7 @@ Este é um exemplo de como o sistema deve se comportar quando estiver funcionand
 2026-05-02 10:03:21 | INFO | lead_dispatcher.main | Dispatcher finished
 ```
 
-## Estrutura esperada
-
-```txt
-postgres-lead-whatsapp-dispatcher/
-├─ config/
-│  ├─ instances.example.yml
-│  ├─ messages.example.yml
-│  └─ lead_query.example.sql
-├─ data/
-│  └─ .gitkeep
-├─ logs/
-│  └─ .gitkeep
-├─ reports/
-│  └─ .gitkeep
-├─ src/
-│  └─ lead_dispatcher/
-│     ├─ settings.py
-│     ├─ database.py
-│     ├─ lead_repository.py
-│     ├─ eligibility.py
-│     ├─ instance_pool.py
-│     ├─ message_renderer.py
-│     ├─ evolution_client.py
-│     ├─ dispatcher.py
-│     ├─ reporting.py
-│     ├─ logging_config.py
-│     └─ utils.py
-├─ .env.example
-├─ .gitignore
-├─ pyproject.toml
-├─ requirements.txt
-└─ README.md
-```
-
-## Instalação rápida
+## Instalação e execução
 
 ```bash
 python -m venv .venv
@@ -361,49 +239,62 @@ No Windows:
 pip install -r requirements.txt
 ```
 
-## Uso planejado
-
-Copie os arquivos de exemplo:
-
-```bash
-cp .env.example .env
-cp config/instances.example.yml config/instances.yml
-cp config/messages.example.yml config/messages.yml
-cp config/lead_query.example.sql config/lead_query.sql
-```
-
-Nesta branch os arquivos locais já foram criados para facilitar a configuração, mas continuam ignorados pelo Git.
-
-Rode em modo simulação:
+Para rodar em modo simulação:
 
 ```bash
 python -m lead_dispatcher.main
 ```
 
-Para envio real, configure corretamente a Evolution API e defina:
+Para envio real, configure PostgreSQL, Evolution API, instâncias e mensagens, revise a query de elegibilidade e altere:
 
 ```env
 DRY_RUN=false
 ```
 
-## Limitações e cuidados
+## Estrutura do projeto
 
-Este projeto não deve ser usado para spam, disparos abusivos ou contato sem base legal.
+```txt
+postgres-lead-whatsapp-dispatcher/
+├─ config/
+│  ├─ instances.example.yml
+│  ├─ messages.example.yml
+│  └─ lead_query.example.sql
+├─ src/
+│  └─ lead_dispatcher/
+│     ├─ settings.py
+│     ├─ database.py
+│     ├─ lead_repository.py
+│     ├─ eligibility.py
+│     ├─ instance_pool.py
+│     ├─ message_renderer.py
+│     ├─ evolution_client.py
+│     ├─ dispatcher.py
+│     ├─ reporting.py
+│     └─ logging_config.py
+├─ tests/
+├─ .env.example
+├─ COMPLIANCE.md
+├─ pyproject.toml
+└─ README.md
+```
 
-Antes de usar em produção, valide:
+## Qualidade e segurança
 
-- Consentimento ou base legal para contato.
-- Política de opt-out.
-- Higiene da base.
-- Limites operacionais por instância.
-- Riscos do uso de APIs não oficiais.
-- Conformidade com LGPD.
+```bash
+ruff check .
+pytest -q
+```
 
-## Licença recomendada
+O CI executa lint, testes e varredura de segredos. Antes de publicar ou compartilhar uma execução real, confira também:
 
-Recomendação: Apache License 2.0
+- `.env`, configs reais e relatórios não estão versionados.
+- `LOG_MASK_PHONE=true` está ativo quando houver dados reais.
+- Relatórios em `reports/` podem conter dados operacionais e devem permanecer fora do git.
+- A query contém apenas leads com opt-in/base legal e sem restrições comerciais.
+- O uso da API não oficial está alinhado com os riscos e políticas da operação.
 
-Motivo: este projeto tem potencial de uso comercial e integração sensível com APIs e dados operacionais, então a Apache 2.0 oferece uma licença permissiva com termos mais completos.
+Este repositório é publicado como referência técnica. Não há processo aberto de contribuição.
 
-Link oficial:
-https://www.apache.org/licenses/LICENSE-2.0
+## Licença
+
+Distribuído sob a licença Apache 2.0. Consulte [LICENSE](LICENSE).

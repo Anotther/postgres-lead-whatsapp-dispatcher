@@ -24,6 +24,8 @@ Este projeto processa dados pessoais de leads para envio operacional via WhatsAp
 
 - Mantenha `LOG_MASK_PHONE=true` em ambientes com dados reais.
 - Mascarar telefones em logs, CSV, JSON e Markdown sempre que os arquivos puderem ser compartilhados.
+- Trate qualquer arquivo em `reports/` como sensível, pois relatórios podem conter telefones, instâncias, motivos de falha e identificadores de leads.
+- Não publique logs, relatórios ou exports gerados em execuções reais. O repositório deve manter apenas `.gitkeep` e exemplos sem dados pessoais.
 - Armazene relatórios pelo menor tempo operacional necessário e remova arquivos antigos conforme a política da organização.
 
 ## Evolution API

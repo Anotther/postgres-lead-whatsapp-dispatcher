@@ -1,7 +1,7 @@
 [project]
 name = "postgres-lead-whatsapp-dispatcher"
 version = "0.1.0"
-description = "Script Python modular para consultar leads no PostgreSQL, validar status comercial e distribuir envios via Evolution Go."
+description = "Dispatcher Python para consultar leads no PostgreSQL, aplicar elegibilidade comercial e distribuir mensagens via Evolution Go/Evolution API."
 readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "Apache-2.0" }
