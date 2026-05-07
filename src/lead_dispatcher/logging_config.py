@@ -9,17 +9,25 @@ from .utils import mask_phone_numbers
 
 
 class PhoneMaskingFilter(logging.Filter):
+    @staticmethod
+    def _mask_value(value):
+        if isinstance(value, (str, int)):
+            masked = mask_phone_numbers(str(value))
+            return masked if isinstance(value, str) or masked != str(value) else value
+
+        return value
+
     def filter(self, record: logging.LogRecord) -> bool:
         record.msg = mask_phone_numbers(str(record.msg))
 
         if record.args:
             if isinstance(record.args, dict):
                 record.args = {
-                    key: mask_phone_numbers(str(value))
+                    key: self._mask_value(value)
                     for key, value in record.args.items()
                 }
             else:
-                record.args = tuple(mask_phone_numbers(str(value)) for value in record.args)
+                record.args = tuple(self._mask_value(value) for value in record.args)
 
         return True
 

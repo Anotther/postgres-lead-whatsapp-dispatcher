@@ -30,6 +30,8 @@ class Settings(BaseSettings):
     evolution_base_url: str = "http://localhost:8080"
     evolution_api_key: str = "change_me"
     evolution_send_text_path: str = "/message/sendText/{instance}"
+    evolution_instance_status_path: str = "/instance/status"
+    evolution_connected_states: str = "open,connected,online"
 
     # Config files
     instances_config_path: str = "config/instances.example.yml"
@@ -40,6 +42,9 @@ class Settings(BaseSettings):
     max_retries: int = 3
     request_timeout_seconds: int = 30
     stop_on_critical_error: bool = False
+    dispatch_limit_override: str = "ask"
+    limit_override_prompt_timeout_seconds: int = 120
+    dispatch_state_path: str = "data/dispatch_state.json"
 
     # Logs
     log_level: str = "INFO"
@@ -49,7 +54,8 @@ class Settings(BaseSettings):
 
     # Reports
     report_dir: str = "reports"
-    report_formats: str = "csv,json,md"
+    report_formats: str = "md"
+    report_keep_history: bool = False
     report_send_whatsapp: bool = False
     report_recipient_number: str | None = None
     report_recipient_instance: str | None = None
