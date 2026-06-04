@@ -16,21 +16,50 @@
 
     body {
       margin: 0;
-      background: #f4f7f5;
+      background:
+        radial-gradient(circle at 18% 8%, rgba(37, 211, 102, 0.12), transparent 28%),
+        linear-gradient(135deg, #f6faf7 0%, #eef5f1 52%, #f8fafc 100%);
       color: #1f2933;
       font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       line-height: 1.45;
+      scroll-behavior: smooth;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      background-image:
+        linear-gradient(rgba(17, 24, 39, 0.045) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(17, 24, 39, 0.045) 1px, transparent 1px);
+      background-size: 32px 32px;
+      mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.5), transparent 70%);
+    }
+
+    .deck {
+      padding: 34px 18px;
     }
 
     .page {
       position: relative;
       width: 210mm;
       min-height: 297mm;
-      margin: 0 auto;
+      margin: 0 auto 34px;
       padding: 26mm 24mm 22mm;
       page-break-after: always;
       background: #ffffff;
       overflow: hidden;
+      border: 1px solid rgba(17, 24, 39, 0.08);
+      border-radius: 10px;
+      box-shadow: 0 22px 70px rgba(15, 23, 42, 0.14);
+      scroll-margin: 24px;
+      transition: box-shadow 180ms ease, transform 180ms ease;
+    }
+
+    .page.is-active {
+      box-shadow: 0 28px 90px rgba(15, 23, 42, 0.2);
+      transform: translateY(-2px);
     }
 
     .page:last-child {
@@ -44,6 +73,19 @@
       height: 8mm;
       border-bottom: 1.6mm solid #25d366;
       background: #111b21;
+    }
+
+    .page::after {
+      content: "";
+      position: absolute;
+      top: 18mm;
+      right: 18mm;
+      width: 64mm;
+      height: 64mm;
+      border: 1px solid rgba(37, 211, 102, 0.2);
+      border-radius: 50%;
+      background: linear-gradient(135deg, rgba(37, 211, 102, 0.08), rgba(17, 27, 33, 0));
+      pointer-events: none;
     }
 
     .eyebrow {
@@ -110,6 +152,13 @@
       color: #111b21;
       font-size: 13px;
       font-weight: 700;
+      transition: border-color 160ms ease, transform 160ms ease, background 160ms ease;
+    }
+
+    .pill:hover {
+      border-color: #25d366;
+      background: #ecfff3;
+      transform: translateY(-1px);
     }
 
     .hero-meta {
@@ -128,6 +177,15 @@
       border-radius: 8px;
       background: #fbfdfb;
       padding: 18px;
+      transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+    }
+
+    .meta-block:hover,
+    .card:hover,
+    .contact-line:hover {
+      border-color: rgba(37, 211, 102, 0.58);
+      box-shadow: 0 10px 28px rgba(15, 23, 42, 0.08);
+      transform: translateY(-2px);
     }
 
     .meta-label {
@@ -242,6 +300,7 @@
       border-radius: 8px;
       background: #fbfdfb;
       padding: 18px 20px;
+      transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
     }
 
     .contact-line strong {
@@ -264,20 +323,134 @@
       overflow-wrap: anywhere;
     }
 
+    .deck-nav {
+      position: fixed;
+      top: 50%;
+      right: 24px;
+      z-index: 10;
+      display: grid;
+      gap: 10px;
+      transform: translateY(-50%);
+    }
+
+    .deck-nav a {
+      width: 10px;
+      height: 10px;
+      border: 1px solid rgba(18, 140, 74, 0.55);
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.72);
+      box-shadow: 0 4px 14px rgba(15, 23, 42, 0.16);
+      font-size: 0;
+      transition: background 160ms ease, transform 160ms ease;
+    }
+
+    .deck-nav a.is-active {
+      background: #128c4a;
+      transform: scale(1.35);
+    }
+
+    .keyboard-hint {
+      position: fixed;
+      right: 20px;
+      bottom: 18px;
+      z-index: 10;
+      padding: 8px 10px;
+      border: 1px solid rgba(18, 140, 74, 0.22);
+      border-radius: 7px;
+      background: rgba(255, 255, 255, 0.86);
+      color: #475569;
+      font-size: 12px;
+      font-weight: 700;
+      box-shadow: 0 8px 28px rgba(15, 23, 42, 0.12);
+      backdrop-filter: blur(10px);
+    }
+
+    @media (max-width: 920px) {
+      .deck {
+        padding: 18px 10px 52px;
+      }
+
+      .page {
+        width: min(100%, 210mm);
+        min-height: auto;
+        aspect-ratio: 210 / 297;
+        padding: 10vw 8vw 9vw;
+      }
+
+      .hero-meta,
+      .note,
+      .footer {
+        left: 8vw;
+        right: 8vw;
+      }
+
+      .hero-meta,
+      .grid-2,
+      .grid-3 {
+        grid-template-columns: 1fr;
+      }
+
+      h1 {
+        font-size: 34px;
+      }
+
+      h2 {
+        font-size: 29px;
+      }
+
+      .lead {
+        font-size: 17px;
+      }
+
+      .deck-nav {
+        top: auto;
+        right: 50%;
+        bottom: 16px;
+        grid-auto-flow: column;
+        transform: translateX(50%);
+      }
+
+      .keyboard-hint {
+        display: none;
+      }
+    }
+
     @media print {
       body {
         background: #ffffff;
       }
 
+      body::before,
+      .deck-nav,
+      .keyboard-hint {
+        display: none;
+      }
+
+      .deck {
+        padding: 0;
+      }
+
       .page {
         margin: 0;
+        border: 0;
+        border-radius: 0;
         box-shadow: none;
+        transform: none;
       }
     }
   </style>
 </head>
 <body>
-  <section class="page">
+  <nav class="deck-nav" aria-label="Navegação entre páginas">
+    <a href="#page-1" aria-label="Ir para página 1"></a>
+    <a href="#page-2" aria-label="Ir para página 2"></a>
+    <a href="#page-3" aria-label="Ir para página 3"></a>
+    <a href="#page-4" aria-label="Ir para página 4"></a>
+    <a href="#page-5" aria-label="Ir para página 5"></a>
+  </nav>
+  <div class="keyboard-hint" aria-hidden="true">Use ← → ou ↑ ↓</div>
+  <main class="deck">
+  <section class="page" id="page-1" tabindex="-1">
     <p class="eyebrow">Project overview</p>
     <h1>postgres-lead-whatsapp-dispatcher</h1>
     <p class="lead">Automação em Python para consultar leads, aplicar elegibilidade comercial e distribuir mensagens por instâncias de WhatsApp com controle operacional.</p>
@@ -303,7 +476,7 @@
     </footer>
   </section>
 
-  <section class="page">
+  <section class="page" id="page-2" tabindex="-1">
     <p class="eyebrow">Problema e solução</p>
     <h2>Enviar leads não é só disparar mensagens.</h2>
     <p class="lead">Uma operação comercial precisa selecionar quem pode receber contato, evitar duplicidade, respeitar limites e manter rastreabilidade do que aconteceu.</p>
@@ -328,7 +501,7 @@
     </footer>
   </section>
 
-  <section class="page">
+  <section class="page" id="page-3" tabindex="-1">
     <p class="eyebrow">Fluxo simplificado</p>
     <h2>Da base de leads ao relatório operacional.</h2>
     <p class="lead">O fluxo separa seleção, validação, mensagem, distribuição e auditoria para facilitar manutenção e reduzir risco em execução real.</p>
@@ -383,7 +556,7 @@
     </footer>
   </section>
 
-  <section class="page">
+  <section class="page" id="page-4" tabindex="-1">
     <p class="eyebrow">Decisões técnicas</p>
     <h2>O foco foi operação previsível.</h2>
     <p class="lead">As escolhas técnicas priorizam controle, observabilidade e manutenção, não apenas a chamada HTTP de envio.</p>
@@ -410,7 +583,7 @@
     </footer>
   </section>
 
-  <section class="page">
+  <section class="page" id="page-5" tabindex="-1">
     <p class="eyebrow">Contato</p>
     <h2>Projeto de estudo com decisões inspiradas em operação real.</h2>
     <p class="lead">Construído para demonstrar automação técnica aplicada a um fluxo comercial, com atenção a risco operacional, rastreabilidade e qualidade de entrega.</p>
@@ -433,5 +606,60 @@
       <span>05 / 05</span>
     </footer>
   </section>
+  </main>
+  <script>
+    const pages = [...document.querySelectorAll(".page")];
+    const navItems = [...document.querySelectorAll(".deck-nav a")];
+    let activeIndex = 0;
+
+    function setActive(index, shouldScroll) {
+      activeIndex = Math.max(0, Math.min(index, pages.length - 1));
+
+      pages.forEach((page, pageIndex) => {
+        page.classList.toggle("is-active", pageIndex === activeIndex);
+      });
+
+      navItems.forEach((item, itemIndex) => {
+        item.classList.toggle("is-active", itemIndex === activeIndex);
+      });
+
+      if (shouldScroll) {
+        pages[activeIndex].scrollIntoView({ behavior: "smooth", block: "start" });
+        pages[activeIndex].focus({ preventScroll: true });
+      }
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visible = entries
+          .filter((entry) => entry.isIntersecting)
+          .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+
+        if (visible) {
+          setActive(pages.indexOf(visible.target), false);
+        }
+      },
+      { threshold: [0.4, 0.65, 0.85] }
+    );
+
+    pages.forEach((page) => observer.observe(page));
+
+    document.addEventListener("keydown", (event) => {
+      const nextKeys = ["ArrowRight", "ArrowDown", "PageDown"];
+      const previousKeys = ["ArrowLeft", "ArrowUp", "PageUp"];
+
+      if (nextKeys.includes(event.key)) {
+        event.preventDefault();
+        setActive(activeIndex + 1, true);
+      }
+
+      if (previousKeys.includes(event.key)) {
+        event.preventDefault();
+        setActive(activeIndex - 1, true);
+      }
+    });
+
+    setActive(0, false);
+  </script>
 </body>
 </html>

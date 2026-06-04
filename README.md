@@ -6,6 +6,8 @@ O projeto demonstra uma automação operacional comum em times comerciais: selec
 
 [Project Overview no GitHub Pages](https://anotther.github.io/postgres-lead-whatsapp-dispatcher/)
 
+[Project Overview em PDF](project-overview.pdf)
+
 > A integração usa Evolution Go/Evolution API, uma API não oficial para WhatsApp. O uso real exige opt-in/base legal, controle de volume, política de opt-out e atenção à LGPD.
 
 ## Visão geral
@@ -50,6 +52,20 @@ Na prática, o sistema:
 - ruff para lint
 - GitHub Actions para CI
 - Gitleaks para varredura de segredos no pipeline
+
+## Materiais do projeto
+
+A página pública do projeto usa `index.html` e é publicada pelo GitHub Pages. O arquivo `project-overview.pdf` é gerado a partir desse mesmo HTML.
+
+Para gerar o PDF localmente:
+
+```bash
+python -m pip install playwright
+python -m playwright install chromium
+python scripts/generate_project_pdf.py
+```
+
+O workflow `Project PDF` também executa essa geração automaticamente quando `index.html`, o script de geração ou o próprio workflow mudam na branch `main`. Se houver diferença no PDF, o workflow cria um commit atualizando `project-overview.pdf`.
 
 ## Fluxo de funcionamento
 
