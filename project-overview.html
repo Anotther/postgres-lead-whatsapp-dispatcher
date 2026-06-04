@@ -1,0 +1,437 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>postgres-lead-whatsapp-dispatcher · Project Overview</title>
+  <style>
+    @page {
+      size: A4;
+      margin: 0;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: #f4f7f5;
+      color: #1f2933;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.45;
+    }
+
+    .page {
+      position: relative;
+      width: 210mm;
+      min-height: 297mm;
+      margin: 0 auto;
+      padding: 26mm 24mm 22mm;
+      page-break-after: always;
+      background: #ffffff;
+      overflow: hidden;
+    }
+
+    .page:last-child {
+      page-break-after: auto;
+    }
+
+    .page::before {
+      content: "";
+      position: absolute;
+      inset: 0 0 auto;
+      height: 8mm;
+      border-bottom: 1.6mm solid #25d366;
+      background: #111b21;
+    }
+
+    .eyebrow {
+      margin: 0 0 12px;
+      color: #128c4a;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0;
+      text-transform: uppercase;
+    }
+
+    h1,
+    h2 {
+      margin: 0;
+      color: #111827;
+      letter-spacing: 0;
+      line-height: 1.05;
+    }
+
+    h1 {
+      max-width: 145mm;
+      font-size: 43px;
+    }
+
+    h2 {
+      max-width: 138mm;
+      font-size: 34px;
+    }
+
+    h3 {
+      margin: 0 0 8px;
+      color: #111827;
+      font-size: 16px;
+      line-height: 1.2;
+    }
+
+    p {
+      margin: 0;
+      color: #4b5563;
+      font-size: 15px;
+    }
+
+    .lead {
+      max-width: 142mm;
+      margin-top: 18px;
+      color: #374151;
+      font-size: 19px;
+      line-height: 1.45;
+    }
+
+    .stack {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 26px;
+    }
+
+    .pill {
+      min-height: 31px;
+      padding: 7px 11px;
+      border: 1px solid #cfe8da;
+      border-radius: 6px;
+      background: #f2fbf5;
+      color: #111b21;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .hero-meta {
+      position: absolute;
+      left: 24mm;
+      right: 24mm;
+      bottom: 32mm;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+    }
+
+    .meta-block,
+    .card {
+      border: 1px solid #d8e6dc;
+      border-radius: 8px;
+      background: #fbfdfb;
+      padding: 18px;
+    }
+
+    .meta-label {
+      margin-bottom: 6px;
+      color: #64748b;
+      font-size: 12px;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+
+    .meta-value {
+      color: #111827;
+      font-size: 17px;
+      font-weight: 800;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-top: 30px;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+      margin-top: 28px;
+    }
+
+    .number {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 28px;
+      margin-bottom: 14px;
+      border-radius: 50%;
+      background: #dff8e8;
+      color: #128c4a;
+      font-size: 13px;
+      font-weight: 900;
+    }
+
+    .note {
+      position: absolute;
+      left: 24mm;
+      right: 24mm;
+      bottom: 33mm;
+      border-left: 4px solid #25d366;
+      background: #f0fbf4;
+      padding: 14px 16px;
+    }
+
+    .note p {
+      color: #115e36;
+      font-size: 13px;
+    }
+
+    .flow-wrap {
+      margin-top: 34px;
+      padding: 20px;
+      border: 1px solid #d8e6dc;
+      border-radius: 8px;
+      background: #fbfdfb;
+    }
+
+    .flow-caption {
+      margin-top: 16px;
+      color: #475569;
+      font-size: 14px;
+    }
+
+    code {
+      padding: 1px 5px;
+      border-radius: 4px;
+      background: #e8f8ee;
+      color: #128c4a;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      font-size: 0.92em;
+      font-weight: 800;
+    }
+
+    svg {
+      display: block;
+      width: 100%;
+      height: auto;
+    }
+
+    .footer {
+      position: absolute;
+      left: 24mm;
+      right: 24mm;
+      bottom: 13mm;
+      display: flex;
+      justify-content: space-between;
+      border-top: 1px solid #e5e7eb;
+      padding-top: 9px;
+      color: #94a3b8;
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .contact {
+      margin-top: 38px;
+      display: grid;
+      gap: 14px;
+    }
+
+    .contact-line {
+      border: 1px solid #d8e6dc;
+      border-radius: 8px;
+      background: #fbfdfb;
+      padding: 18px 20px;
+    }
+
+    .contact-line strong {
+      display: block;
+      margin-bottom: 6px;
+      color: #111827;
+      font-size: 15px;
+    }
+
+    .contact-line span {
+      color: #475569;
+      font-size: 16px;
+      overflow-wrap: anywhere;
+    }
+
+    a {
+      color: #128c4a;
+      font-weight: 800;
+      text-decoration: none;
+      overflow-wrap: anywhere;
+    }
+
+    @media print {
+      body {
+        background: #ffffff;
+      }
+
+      .page {
+        margin: 0;
+        box-shadow: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <section class="page">
+    <p class="eyebrow">Project overview</p>
+    <h1>postgres-lead-whatsapp-dispatcher</h1>
+    <p class="lead">Automação em Python para consultar leads, aplicar elegibilidade comercial e distribuir mensagens por instâncias de WhatsApp com controle operacional.</p>
+    <div class="stack" aria-label="Stack principal">
+      <span class="pill">Python</span>
+      <span class="pill">PostgreSQL</span>
+      <span class="pill">WhatsApp API</span>
+      <span class="pill">Sales Ops</span>
+    </div>
+    <div class="hero-meta">
+      <div class="meta-block">
+        <div class="meta-label">Autor</div>
+        <div class="meta-value"><a href="https://www.linkedin.com/in/leonardo-fortes-580a18262/">Leonardo</a></div>
+      </div>
+      <div class="meta-block">
+        <div class="meta-label">Contexto</div>
+        <div class="meta-value">Projeto de estudo com desenho operacional</div>
+      </div>
+    </div>
+    <footer class="footer">
+      <span>postgres-lead-whatsapp-dispatcher · Leonardo</span>
+      <span>01 / 05</span>
+    </footer>
+  </section>
+
+  <section class="page">
+    <p class="eyebrow">Problema e solução</p>
+    <h2>Enviar leads não é só disparar mensagens.</h2>
+    <p class="lead">Uma operação comercial precisa selecionar quem pode receber contato, evitar duplicidade, respeitar limites e manter rastreabilidade do que aconteceu.</p>
+    <div class="grid-2">
+      <article class="card">
+        <span class="number">1</span>
+        <h3>Problema</h3>
+        <p>Leads vêm de uma base PostgreSQL, mas nem todo contato está elegível. Telefone inválido, venda iniciada, matrícula feita, ausência de opt-in ou envio anterior mudam a decisão.</p>
+      </article>
+      <article class="card">
+        <span class="number">2</span>
+        <h3>Solução</h3>
+        <p>O dispatcher consulta a base, valida elegibilidade, renderiza mensagens personalizadas e distribui envios entre instâncias configuradas com delay e limites próprios.</p>
+      </article>
+    </div>
+    <div class="note">
+      <p>Integração com API não oficial; uso real exige opt-in, base legal, controle de volume e política de opt-out.</p>
+    </div>
+    <footer class="footer">
+      <span>postgres-lead-whatsapp-dispatcher · Leonardo</span>
+      <span>02 / 05</span>
+    </footer>
+  </section>
+
+  <section class="page">
+    <p class="eyebrow">Fluxo simplificado</p>
+    <h2>Da base de leads ao relatório operacional.</h2>
+    <p class="lead">O fluxo separa seleção, validação, mensagem, distribuição e auditoria para facilitar manutenção e reduzir risco em execução real.</p>
+    <div class="flow-wrap">
+      <svg viewBox="0 0 920 430" role="img" aria-label="Fluxo: PostgreSQL, Eligibility, Message Renderer, Instance Pool, Evolution API, Reports">
+        <defs>
+          <marker id="arrow" markerWidth="12" markerHeight="12" refX="9" refY="6" orient="auto">
+            <path d="M2,2 L10,6 L2,10 Z" fill="#25d366"></path>
+          </marker>
+          <style>
+            .box { fill: #ffffff; stroke: #cbd5e1; stroke-width: 2; }
+            .box-accent { fill: #ecfff3; stroke: #25d366; stroke-width: 2; }
+            .label { fill: #111827; font: 700 20px system-ui, sans-serif; }
+            .sub { fill: #64748b; font: 14px system-ui, sans-serif; }
+            .line { stroke: #25d366; stroke-width: 3; fill: none; marker-end: url(#arrow); }
+          </style>
+        </defs>
+        <rect class="box" x="30" y="60" width="240" height="86" rx="8"></rect>
+        <text class="label" x="60" y="99">PostgreSQL</text>
+        <text class="sub" x="60" y="124">query externa de leads</text>
+
+        <path class="line" d="M270 103 H350"></path>
+        <rect class="box-accent" x="350" y="60" width="240" height="86" rx="8"></rect>
+        <text class="label" x="380" y="99">Eligibility</text>
+        <text class="sub" x="380" y="124">telefone, opt-in e status</text>
+
+        <path class="line" d="M590 103 H670"></path>
+        <rect class="box" x="670" y="60" width="240" height="86" rx="8"></rect>
+        <text class="label" x="700" y="99">Message Renderer</text>
+        <text class="sub" x="700" y="124">templates YAML ponderados</text>
+
+        <path class="line" d="M790 146 V218"></path>
+        <rect class="box-accent" x="670" y="218" width="240" height="86" rx="8"></rect>
+        <text class="label" x="700" y="257">Instance Pool</text>
+        <text class="sub" x="700" y="282">delay, limites e balanceamento</text>
+
+        <path class="line" d="M670 261 H590"></path>
+        <rect class="box" x="350" y="218" width="240" height="86" rx="8"></rect>
+        <text class="label" x="380" y="257">Evolution API</text>
+        <text class="sub" x="380" y="282">status e envio de texto</text>
+
+        <path class="line" d="M350 261 H270"></path>
+        <rect class="box" x="30" y="218" width="240" height="86" rx="8"></rect>
+        <text class="label" x="60" y="257">Reports</text>
+        <text class="sub" x="60" y="282">md, csv, json e falhas</text>
+      </svg>
+      <p class="flow-caption">O <code>DRY_RUN</code> permite validar query, elegibilidade, templates, logs e relatórios antes de qualquer envio real.</p>
+    </div>
+    <footer class="footer">
+      <span>postgres-lead-whatsapp-dispatcher · Leonardo</span>
+      <span>03 / 05</span>
+    </footer>
+  </section>
+
+  <section class="page">
+    <p class="eyebrow">Decisões técnicas</p>
+    <h2>O foco foi operação previsível.</h2>
+    <p class="lead">As escolhas técnicas priorizam controle, observabilidade e manutenção, não apenas a chamada HTTP de envio.</p>
+    <div class="grid-3">
+      <article class="card">
+        <span class="number">1</span>
+        <h3>Segurança operacional</h3>
+        <p><code>DRY_RUN</code> ativo por padrão, configs reais fora do git, telefone mascarado em logs e validação defensiva de elegibilidade.</p>
+      </article>
+      <article class="card">
+        <span class="number">2</span>
+        <h3>Distribuição entre instâncias</h3>
+        <p>Cada instância tem delay, limite por execução e limite diário. O pool escolhe a disponível com menor volume na rodada.</p>
+      </article>
+      <article class="card">
+        <span class="number">3</span>
+        <h3>Observabilidade e compliance</h3>
+        <p>Relatórios em formatos operacionais, export de enviados e falhas, CI com testes, lint e varredura de segredos.</p>
+      </article>
+    </div>
+    <footer class="footer">
+      <span>postgres-lead-whatsapp-dispatcher · Leonardo</span>
+      <span>04 / 05</span>
+    </footer>
+  </section>
+
+  <section class="page">
+    <p class="eyebrow">Contato</p>
+    <h2>Projeto de estudo com decisões inspiradas em operação real.</h2>
+    <p class="lead">Construído para demonstrar automação técnica aplicada a um fluxo comercial, com atenção a risco operacional, rastreabilidade e qualidade de entrega.</p>
+    <div class="contact">
+      <div class="contact-line">
+        <strong>Autor</strong>
+        <span><a href="https://www.linkedin.com/in/leonardo-fortes-580a18262/">Leonardo</a></span>
+      </div>
+      <div class="contact-line">
+        <strong>GitHub</strong>
+        <span><a href="https://github.com/Anotther/postgres-lead-whatsapp-dispatcher">github.com/Anotther/postgres-lead-whatsapp-dispatcher</a></span>
+      </div>
+      <div class="contact-line">
+        <strong>Stack principal</strong>
+        <span>Python · PostgreSQL · YAML · HTTPX · Pydantic Settings · pytest · ruff · GitHub Actions</span>
+      </div>
+    </div>
+    <footer class="footer">
+      <span>postgres-lead-whatsapp-dispatcher · Leonardo</span>
+      <span>05 / 05</span>
+    </footer>
+  </section>
+</body>
+</html>
