@@ -4,6 +4,8 @@ Dispatcher em Python para consultar leads no PostgreSQL, aplicar regras de elegi
 
 O projeto demonstra uma automação operacional comum em times comerciais: selecionar contatos elegíveis por SQL, montar mensagens personalizadas, respeitar limites por instância e registrar a execução com logs e relatórios.
 
+[Project Overview no GitHub Pages](https://anotther.github.io/postgres-lead-whatsapp-dispatcher/)
+
 > A integração usa Evolution Go/Evolution API, uma API não oficial para WhatsApp. O uso real exige opt-in/base legal, controle de volume, política de opt-out e atenção à LGPD.
 
 ## Visão geral
