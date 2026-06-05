@@ -2,11 +2,11 @@ Nem todo projeto de estudo precisa parecer pequeno.
 
 Criei um dispatcher em Python para simular uma necessidade bem comum em operações comerciais: consultar leads no PostgreSQL, aplicar regras de elegibilidade e distribuir mensagens entre instâncias de WhatsApp usando Evolution Go/Evolution API.
 
-A ideia não foi só “enviar mensagem”. O foco foi desenhar uma automação com critérios operacionais: DRY_RUN por padrão, templates em YAML, balanceamento entre instâncias, limites por execução e por dia, validação de opt-in, logs com telefone mascarado, relatórios de envio e CI com pytest, ruff e Gitleaks.
+A ideia não foi só "enviar mensagem". O foco foi desenhar uma automação com critérios operacionais: DRY_RUN por padrão, templates em YAML, balanceamento entre instâncias, limites por execução, relatórios estruturados e controle de estado.
 
-Boa parte dessas decisões veio de aprendizados do mercado: automação precisa ser observável, configurável e segura antes de ser rápida. Em ambiente corporativo, o detalhe que evita erro em produção vale tanto quanto a feature principal.
+Boa parte dessas decisões veio de aprendizados do mercado: automação precisa ser observável, configurável e segura antes de ser rápida. Em ambiente corporativo, o detalhe que evita erro em produção é sempre o diferencial.
 
-É um projeto de estudo, mas tentei tratar como trataria uma entrega real: com cuidado para operação, compliance e manutenção.
+Já trabalhei ativamente em projetos similares e com muito mais regras de negócio. Aqui, apliquei essas mesmas práticas: cuidado com operação, compliance e manutenção.
 
 Repositório no GitHub:
 https://github.com/Anotther/postgres-lead-whatsapp-dispatcher
